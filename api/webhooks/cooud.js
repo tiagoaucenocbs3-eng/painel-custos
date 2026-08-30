@@ -143,9 +143,22 @@ module.exports = async (req, res) => {
       'Prefer': 'resolution=merge-duplicates'
     };
 
+    let rate = 6.10;
+    try {
+      const exchangeRes = await fetch('https://open.er-api.com/v6/latest/EUR');
+      if (exchangeRes.ok) {
+        const exchangeData = await exchangeRes.json();
+        if (exchangeData.rates && exchangeData.rates.BRL) {
+          rate = exchangeData.rates.BRL;
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao buscar taxa de câmbio no webhook:', e);
+    }
+
     const eventPayload = {
       id: String(id),
-      status: status === 'approved' ? 'approved' : `pending_debug:${JSON.stringify(body)}`,
+      status: status === 'approved' ? `approved_rate:${rate}` : `pending_debug:${JSON.stringify(body)}`,
       amount,
       net_amount,
       date,

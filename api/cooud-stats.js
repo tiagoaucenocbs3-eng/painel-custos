@@ -63,7 +63,9 @@ module.exports = async (req, res) => {
       const amt = parseFloat(evt.amount || 0);
       const netAmt = parseFloat(evt.net_amount || 0);
 
-      if (evt.status === 'approved') {
+      const isApproved = evt.status === 'approved' || evt.status.startsWith('approved_rate:');
+
+      if (isApproved) {
         approvedOrders++;
         grossRevenue += amt;
         netRevenue += netAmt;

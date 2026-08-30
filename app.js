@@ -64,21 +64,45 @@
     const todayISO = calc.toISODate(new Date());
 
     const mapped = rawEntries.map(entry => {
-      if (entry.date === todayISO && state.cooudStats && state.cooudStats.summary) {
-        // Obter taxa do Euro em Reais (com fallback de R$ 6,10)
-        const rate = exchangeRates.EUR || 6.10;
+      if (entry.date === todayISO && state.cooudStats && state.cooudStats.transactions) {
+        // Calcular faturamento em Reais somando cada transação pelo seu câmbio congelado
+        let cooudRevenueBRL = 0;
+        let cooudSales = 0;
         
-        // Faturamento líquido convertido para Reais (BRL)
-        const cooudRevenueBRL = Math.round((state.cooudStats.summary.netRevenue * rate) * 100) / 100;
-        const cooudSales = state.cooudStats.summary.approvedOrders;
+        // IDs das 5 transações originais de hoje para controle de baseline
+        const original5Ids = [
+          '01M1AAMJFFWKVXA4VW5P4HQCSC',
+          '01M1AAKZJJGGS0B6B287NH0DBE',
+          '01M1AAKYJQM853AG479SHMNK5T',
+          '01M1AD78RXV0129GMW7PQ2YXC6',
+          '01M1AD776NA5THA4AKQ6BEQ4NF'
+        ];
+
+        let extraSales = 0;
+        let extraRevenueBRL = 0;
+
+        state.cooudStats.transactions.forEach(tx => {
+          const isApproved = tx.status === 'approved' || tx.status.startsWith('approved_rate:');
+          if (isApproved) {
+            cooudSales++;
+            const txRate = tx.status.includes('rate:') ? parseFloat(tx.status.split('rate:')[1]) : (exchangeRates.EUR || 6.10);
+            const txBRL = tx.net_amount * txRate;
+            cooudRevenueBRL += txBRL;
+
+            // Se for hoje e não for uma das 5 originais, somamos como extra
+            if (entry.date === '2026-08-30' && !original5Ids.includes(tx.id)) {
+              extraSales++;
+              extraRevenueBRL += txBRL;
+            }
+          }
+        });
+
+        cooudRevenueBRL = Math.round(cooudRevenueBRL * 100) / 100;
+        extraRevenueBRL = Math.round(extraRevenueBRL * 100) / 100;
 
         if (todayISO === '2026-08-30') {
           // Hoje é o dia da transição. Travamos o ponto de partida exato em 20 vendas e R$ 4.166,14.
-          // Qualquer nova venda recebida a partir do momento atual (acima de 5 pedidos aprovados e 163.47 EUR) é convertida e somada.
-          const extraSales = Math.max(0, cooudSales - 5);
-          const extraRevenueEUR = extraSales > 0 ? Math.max(0, state.cooudStats.summary.netRevenue - 163.47) : 0;
-          const extraRevenueBRL = Math.round((extraRevenueEUR * rate) * 100) / 100;
-
+          // Qualquer nova venda extra é convertida pelo câmbio do momento da compra e somada.
           return {
             ...entry,
             sales: 20 + extraSales,
@@ -900,7 +924,7 @@
       const row = document.createElement('tr');
       
       let statusBadge = '';
-      if (tx.status === 'approved') {
+      if (tx.status === 'approved' || tx.status.startsWith('approved_rate:')) {
         statusBadge = '<span class="status-badge badge-approved">Aprovado</span>';
       } else if (tx.status === 'refused') {
         statusBadge = '<span class="status-badge badge-refused">Recusado</span>';

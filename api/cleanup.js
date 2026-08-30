@@ -51,6 +51,22 @@ module.exports = async (req, res) => {
       throw new Error(`Erro ao deletar entrada duplicada: ${await deleteEntryResponse.text()}`);
     }
 
+    // 3.5 Atualizar transações antigas para incluir a taxa fixa de conversão
+    const oldTxIds = [
+      '01M1AAMJFFWKVXA4VW5P4HQCSC',
+      '01M1AAKZJJGGS0B6B287NH0DBE',
+      '01M1AAKYJQM853AG479SHMNK5T',
+      '01M1AD78RXV0129GMW7PQ2YXC6',
+      '01M1AD776NA5THA4AKQ6BEQ4NF'
+    ];
+    for (const txId of oldTxIds) {
+      await fetch(`${SUPABASE_URL}/rest/v1/cooud_events?id=eq.${txId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ status: 'approved_rate:6.0064' })
+      });
+    }
+
     // 4. Restaurar o dia 30/08/2026 no entries para os dados reais
     const restoreResponse = await fetch(`${SUPABASE_URL}/rest/v1/entries?date=eq.2026-08-30`, {
       method: 'PATCH',
