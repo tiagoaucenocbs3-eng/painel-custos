@@ -56,8 +56,8 @@ module.exports = async (req, res) => {
       method: 'PATCH',
       headers,
       body: JSON.stringify({
-        sales: 17,
-        revenue: 3583.94,
+        sales: 19,
+        revenue: 3965.68,
         updatedAt: new Date().toISOString()
       })
     });
@@ -71,8 +71,8 @@ module.exports = async (req, res) => {
       message: 'Limpeza e restauração executadas com sucesso.',
       beforeEvents: currentEvents, // Lista de eventos encontrados antes da limpeza
       restoredDate: '2026-08-30',
-      restoredSales: 17,
-      restoredRevenue: 3583.94
+      restoredSales: 19,
+      restoredRevenue: 3965.68
     });
 
   } catch (error) {
