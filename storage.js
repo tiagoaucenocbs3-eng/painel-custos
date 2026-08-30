@@ -292,16 +292,23 @@
     localStorage.setItem(MIGRATED_KEY, 'true');
   }
 
-  // Inicializar com o backup real se estiver totalmente vazio
-  function checkAndInitializeDefaultBackup() {
-    const current = readJSON(ENTRY_KEY, []);
-    const seededState = localStorage.getItem(SEEDED_KEY);
-    
-    if (current.length === 0 && seededState !== 'deleted' && seededState !== 'manual-import') {
-      writeJSON(ENTRY_KEY, DEFAULT_BACKUP.entries);
-      writeJSON(SETTINGS_KEY, DEFAULT_BACKUP.settings);
-      localStorage.setItem(SEEDED_KEY, 'default-backup-seeded');
-    }
+  // Forçar aplicação do backup real do usuário na primeira execução do novo código
+  const BACKUP_APPLIED_KEY = 'painelOperacao.backupApplied.v1';
+
+  function forceApplyUserBackup() {
+    if (localStorage.getItem(BACKUP_APPLIED_KEY)) return;
+
+    console.log('[Migration] Forçando aplicação do backup real do usuário...');
+    writeJSON(ENTRY_KEY, DEFAULT_BACKUP.entries);
+    writeJSON(SETTINGS_KEY, DEFAULT_BACKUP.settings);
+    localStorage.setItem(SEEDED_KEY, 'default-backup-seeded');
+
+    // Forçar envio para a nuvem colocando todos na fila de pendências
+    const upserts = DEFAULT_BACKUP.entries.filter(e => !e.sample);
+    savePendingUpserts(upserts);
+
+    localStorage.setItem(BACKUP_APPLIED_KEY, 'true');
+    localStorage.setItem(MIGRATED_KEY, 'true'); // Marca migrado como feito
   }
 
   let isSyncing = false;
@@ -623,7 +630,7 @@
 
   // Inicializar dados e agendar sincronizações
   if (typeof window !== 'undefined') {
-    checkAndInitializeDefaultBackup();
+    forceApplyUserBackup();
     migrateLocalToPending();
 
     if (location.protocol !== 'file:') {
