@@ -69,6 +69,7 @@
       entries: 'Lançamentos',
       calendar: 'Calendário',
       reports: 'Relatórios',
+      cooud: 'Integração Cooud',
       converter: 'Conversor de Moedas',
       goals: 'Metas',
       settings: 'Configurações'
@@ -658,6 +659,17 @@
     $('#exportCsvBtn').onclick = exportCSV;
     $('#reportsCsvBtn').onclick = exportCSV;
     if ($('#logoutBtn')) $('#logoutBtn').onclick = () => store.logout();
+    if ($('#copyWebhookUrlBtn')) {
+      $('#copyWebhookUrlBtn').onclick = () => {
+        const input = $('#cooudWebhookUrl');
+        if (input) {
+          input.select();
+          input.setSelectionRange(0, 99999);
+          navigator.clipboard.writeText(input.value);
+          toast('Link do Webhook copiado!');
+        }
+      };
+    }
     $('#calendarMonth').onchange = renderCalendar;
     $('#closeDialog').onclick = () => $('#detailsDialog').close();
     $$('#entriesTable th[data-sort]').forEach((th) => th.onclick = () => sortBy(th.dataset.sort));
@@ -684,6 +696,7 @@
   function render() {
     $('#todayLabel').textContent = `Hoje: ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}`;
     if (state.currentView === 'dashboard') renderDashboard();
+    if (state.currentView === 'cooud') fetchCooudStats();
     renderTables();
     renderPeriodSummary();
     renderCalendar();
@@ -768,6 +781,105 @@
     }
 
     $('#calcResult').textContent = formatted;
+  }
+
+  // --- Integração Cooud Checkout ---
+  async function fetchCooudStats() {
+    const { start, end } = state.currentRange;
+    const startStr = calc.toISODate(start);
+    const endStr = calc.toISODate(end);
+
+    const grossEl = $('#cooudGrossRevenue');
+    const netEl = $('#cooudNetRevenue');
+    const approvedEl = $('#cooudApprovedOrders');
+    const rateEl = $('#cooudApprovalRate');
+    const refundEl = $('#cooudRefundAmount');
+
+    if (grossEl) grossEl.textContent = 'Carregando...';
+    if (netEl) netEl.textContent = 'Carregando...';
+    if (approvedEl) approvedEl.textContent = '...';
+    if (rateEl) rateEl.textContent = '...';
+    if (refundEl) refundEl.textContent = 'Carregando...';
+
+    // Definir o valor dinâmico do webhook com base no domínio de acesso
+    const webhookUrlInput = $('#cooudWebhookUrl');
+    if (webhookUrlInput) {
+      webhookUrlInput.value = `${window.location.origin}/api/webhooks/cooud`;
+    }
+
+    try {
+      const password = localStorage.getItem('painelOperacao.authToken') || '';
+      const res = await fetch(`/api/cooud-stats?startDate=${startStr}&endDate=${endStr}`, {
+        headers: {
+          'Authorization': password
+        }
+      });
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          if (window.showLoginOverlay) window.showLoginOverlay(true);
+          return;
+        }
+        throw new Error('Falha ao carregar dados da Cooud');
+      }
+
+      const data = await res.json();
+      renderCooudView(data);
+    } catch (err) {
+      console.error(err);
+      toast('Erro ao buscar dados da Cooud.');
+      if (grossEl) grossEl.textContent = 'Erro';
+      if (netEl) netEl.textContent = 'Erro';
+      if (approvedEl) approvedEl.textContent = 'Erro';
+      if (rateEl) rateEl.textContent = 'Erro';
+      if (refundEl) refundEl.textContent = 'Erro';
+    }
+  }
+
+  function renderCooudView(data) {
+    const summary = data.summary;
+    if ($('#cooudGrossRevenue')) $('#cooudGrossRevenue').textContent = fmtMoney(summary.grossRevenue);
+    if ($('#cooudNetRevenue')) $('#cooudNetRevenue').textContent = fmtMoney(summary.netRevenue);
+    if ($('#cooudApprovedOrders')) $('#cooudApprovedOrders').textContent = summary.approvedOrders;
+    if ($('#cooudApprovalRate')) $('#cooudApprovalRate').textContent = `${summary.approvalRate}%`;
+    if ($('#cooudRefundAmount')) $('#cooudRefundAmount').textContent = `${fmtMoney(summary.refundAmount)} (${summary.refundCount})`;
+
+    const tbody = $('#cooudTransactionsBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+
+    if (!data.transactions || data.transactions.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align: center; color: var(--muted); padding: 20px;">Nenhuma transação recebida no período. Configure o Webhook acima na Cooud para começar.</td>
+        </tr>`;
+      return;
+    }
+
+    data.transactions.forEach(tx => {
+      const row = document.createElement('tr');
+      
+      let statusBadge = '';
+      if (tx.status === 'approved') {
+        statusBadge = '<span class="status-badge badge-approved">Aprovado</span>';
+      } else if (tx.status === 'refused') {
+        statusBadge = '<span class="status-badge badge-refused">Recusado</span>';
+      } else if (tx.status === 'refunded') {
+        statusBadge = '<span class="status-badge badge-refunded">Reembolsado</span>';
+      } else {
+        statusBadge = `<span class="status-badge badge-pending">${tx.status}</span>`;
+      }
+
+      row.innerHTML = `
+        <td>${tx.id}</td>
+        <td>${fmtDate(tx.date)}</td>
+        <td>${fmtMoney(tx.amount)}</td>
+        <td>${fmtMoney(tx.net_amount)}</td>
+        <td>${statusBadge}</td>
+      `;
+      tbody.appendChild(row);
+    });
   }
 
   // --- Fluxo de Autenticação / Login ---

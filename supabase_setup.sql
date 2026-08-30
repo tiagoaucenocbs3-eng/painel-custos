@@ -33,3 +33,17 @@ ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
 INSERT INTO settings (id, data)
 VALUES (1, '{}')
 ON CONFLICT (id) DO NOTHING;
+
+-- 3. Criar a tabela de eventos do Checkout Cooud (Postbacks)
+CREATE TABLE IF NOT EXISTS cooud_events (
+  id TEXT PRIMARY KEY,
+  status TEXT NOT NULL, -- 'approved', 'refused', 'refunded', 'chargeback', 'pending'
+  amount NUMERIC DEFAULT 0, -- valor bruto
+  net_amount NUMERIC DEFAULT 0, -- valor líquido
+  date TEXT NOT NULL, -- YYYY-MM-DD (para agrupamento)
+  "createdAt" TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
+  "updatedAt" TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+);
+
+-- Desabilitar RLS
+ALTER TABLE cooud_events DISABLE ROW LEVEL SECURITY;

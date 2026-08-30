@@ -44,6 +44,7 @@
         <button class="nav-btn" data-view="entries">Lançamentos</button>
         <button class="nav-btn" data-view="calendar">Calendário</button>
         <button class="nav-btn" data-view="reports">Relatórios</button>
+        <button class="nav-btn" data-view="cooud">Cooud</button>
         <button class="nav-btn" data-view="converter">Conversor</button>
         <button class="nav-btn" data-view="goals">Metas</button>
         <button class="nav-btn" data-view="settings">Configurações</button>
@@ -247,6 +248,87 @@
         <section class="panel">
           <div class="panel-head"><div><h2>Tabela do relatório</h2><p>Dados do período selecionado</p></div></div>
           <div class="table-wrap"><table id="reportsTable"><thead></thead><tbody></tbody></table></div>
+        </section>
+      </section>
+
+      <section id="cooud" class="view">
+        <!-- Cards de Métricas da Cooud -->
+        <div class="cards-grid">
+          <div class="metric-card accent-primary">
+            <span>FATURAMENTO BRUTO (COOUD)</span>
+            <strong id="cooudGrossRevenue">R$ 0,00</strong>
+            <small>Valor bruto total das vendas aprovadas</small>
+          </div>
+          <div class="metric-card accent-success">
+            <span>FATURAMENTO LÍQUIDO (COOUD)</span>
+            <strong id="cooudNetRevenue">R$ 0,00</strong>
+            <small>Faturamento bruto deduzindo taxas estimado</small>
+          </div>
+          <div class="metric-card accent-info">
+            <span>PEDIDOS APROVADOS</span>
+            <strong id="cooudApprovedOrders">0</strong>
+            <small>Total de vendas bem sucedidas</small>
+          </div>
+          <div class="metric-card accent-warning">
+            <span>TAXA DE APROVAÇÃO</span>
+            <strong id="cooudApprovalRate">0%</strong>
+            <small>Aprovados vs Recusados (checkout)</small>
+          </div>
+          <div class="metric-card accent-danger">
+            <span>ESTORNOS / REEMBOLSOS</span>
+            <strong id="cooudRefundAmount">R$ 0,00 (0)</strong>
+            <small>Total de reembolsos e chargebacks</small>
+          </div>
+        </div>
+
+        <!-- Instruções de Webhook -->
+        <section class="panel" style="margin-top: 15px;">
+          <div class="panel-head">
+            <div>
+              <h2>Integração com Cooud Checkout</h2>
+              <p>Configure o envio automático de vendas em tempo real para o seu painel</p>
+            </div>
+          </div>
+          <div class="settings-form" style="grid-template-columns: 1fr; gap: 15px; padding-top: 5px;">
+            <div style="background: rgba(8,13,24,0.3); border: 1px solid var(--border-soft); padding: 15px; border-radius: 12px;">
+              <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9rem; color: var(--muted);">URL DO WEBHOOK PARA COPIAR:</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="cooudWebhookUrl" readonly style="flex: 1; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--accent-1); font-size: 0.9rem; text-align: left;" value="">
+                <button id="copyWebhookUrlBtn" class="primary" style="padding: 10px 15px; border-radius: 8px; font-size: 0.9rem; white-space: nowrap;">Copiar Link</button>
+              </div>
+              <p style="margin-top: 12px; font-size: 0.8rem; color: var(--muted); line-height: 1.4;">
+                💡 <strong>Como usar:</strong> No painel do checkout da Cooud, acesse <strong>Configurações &gt; Webhooks (ou Integrações)</strong>, clique em criar um novo Webhook, cole o link acima e selecione os eventos de vendas (ex: <i>Compra Aprovada, Compra Recusada, Estorno, Reembolso</i>). Assim que configurar, suas vendas e faturamentos atualizarão no painel principal em tempo real!
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Histórico de Transações Cooud -->
+        <section class="panel" style="margin-top: 15px;">
+          <div class="panel-head">
+            <div>
+              <h2>Transações Recebidas da Cooud</h2>
+              <p>Histórico de eventos de vendas capturados via Webhook no período</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="cooudTransactionsTable">
+              <thead>
+                <tr>
+                  <th>ID Transação</th>
+                  <th>Data</th>
+                  <th>Valor Bruto</th>
+                  <th>Valor Líquido</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="cooudTransactionsBody">
+                <tr>
+                  <td colspan="5" style="text-align: center; color: var(--muted); padding: 20px;">Nenhuma transação recebida no período. Configure o Webhook acima na Cooud para começar.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </section>
       </section>
 

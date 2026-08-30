@@ -319,6 +319,34 @@ tr:hover td { background: rgba(79,140,255,.045); }
   font-weight: bold;
 }
 
+/* --- Badges de Status (Cooud) --- */
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+}
+.badge-approved {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+}
+.badge-refused {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+}
+.badge-refunded {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+.badge-pending {
+  background: rgba(241, 196, 15, 0.15);
+  color: #f1c40f;
+}
+
 /* --- Responsividade Geral --- */
 @media (max-width: 1280px) {
   .cards-grid { grid-template-columns: repeat(3, 1fr); }
