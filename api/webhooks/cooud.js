@@ -65,8 +65,9 @@ module.exports = async (req, res) => {
                       (body.order && body.order.price) || (body.transaction && body.transaction.amount) || 0;
 
     let amount = parseFloat(rawAmount);
-    // Tratar se o checkout enviar valores em centavos (inteiro grande sem ponto decimal)
-    if (Number.isInteger(amount) && amount > 100 && !String(rawAmount).includes('.')) {
+    // Tratar se o checkout enviar valores em centavos (apenas se a chave de origem contiver 'cents')
+    const hasCentsInKey = Object.keys(body).some(key => key.toLowerCase().includes('cents') && parseFloat(body[key]) === amount);
+    if (hasCentsInKey) {
       amount = amount / 100;
     }
 
@@ -75,8 +76,11 @@ module.exports = async (req, res) => {
                          body.net_cents || body.net || (body.order && body.order.net_amount) || null;
     
     let net_amount = rawNetAmount !== null ? parseFloat(rawNetAmount) : null;
-    if (net_amount !== null && Number.isInteger(net_amount) && net_amount > 100 && !String(rawNetAmount).includes('.')) {
-      net_amount = net_amount / 100;
+    if (net_amount !== null) {
+      const hasCentsInNetKey = Object.keys(body).some(key => key.toLowerCase().includes('cents') && parseFloat(body[key]) === net_amount);
+      if (hasCentsInNetKey) {
+        net_amount = net_amount / 100;
+      }
     }
     // Se não enviado pela API, assume uma comissão padrão de 93% (7% de taxa da plataforma)
     if (net_amount === null || isNaN(net_amount)) {
