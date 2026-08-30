@@ -64,7 +64,8 @@
     const todayISO = calc.toISODate(new Date());
 
     const mapped = rawEntries.map(entry => {
-      if (entry.date === todayISO && state.cooudStats && state.cooudStats.summary) {
+      // Ignorar hoje (30/08/2026) da sobreposição automática para permitir ajuste manual histórico das primeiras 15 vendas
+      if (entry.date === todayISO && todayISO !== '2026-08-30' && state.cooudStats && state.cooudStats.summary) {
         // Obter taxa do Euro em Reais (com fallback de R$ 6,10)
         const rate = exchangeRates.EUR || 6.10;
         
