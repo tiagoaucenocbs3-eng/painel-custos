@@ -1,14 +1,22 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const APP_PASSWORD = process.env.APP_PASSWORD;
 
 module.exports = async (req, res) => {
-  // Configurar cabeçalhos CORS básicos (caso seja acessado externamente, embora o padrão seja mesmo domínio)
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+
+  // Verificar senha se estiver configurada na Vercel
+  if (APP_PASSWORD) {
+    const authHeader = req.headers['authorization'];
+    if (authHeader !== APP_PASSWORD) {
+      return res.status(401).json({ error: 'Não autorizado. Senha incorreta ou ausente.' });
+    }
   }
 
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -41,9 +49,6 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'Corpo da requisição ausente.' });
       }
 
-      // Certificar que é um objeto ou array
-      const payload = body;
-
       const response = await fetch(`${SUPABASE_URL}/rest/v1/entries?on_conflict=id`, {
         method: 'POST',
         headers: {
@@ -52,7 +57,7 @@ module.exports = async (req, res) => {
           'Content-Type': 'application/json',
           'Prefer': 'resolution=merge-duplicates'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(body)
       });
 
       if (!response.ok) {
@@ -68,7 +73,6 @@ module.exports = async (req, res) => {
 
       let url = `${SUPABASE_URL}/rest/v1/entries`;
       if (all === 'true') {
-        // Excluir todos (usamos uma condição que sempre é verdadeira, ex: id não é nulo)
         url += `?id=not.is.null`;
       } else {
         if (!id) {

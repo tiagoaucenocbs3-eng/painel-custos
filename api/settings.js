@@ -1,13 +1,22 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const APP_PASSWORD = process.env.APP_PASSWORD;
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+
+  // Verificar senha se estiver configurada na Vercel
+  if (APP_PASSWORD) {
+    const authHeader = req.headers['authorization'];
+    if (authHeader !== APP_PASSWORD) {
+      return res.status(401).json({ error: 'Não autorizado. Senha incorreta ou ausente.' });
+    }
   }
 
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -31,7 +40,6 @@ module.exports = async (req, res) => {
       }
 
       const data = await response.json();
-      // Retorna apenas o objeto de configurações salvo ou vazio se não existir
       const settings = data && data[0] ? data[0].data : {};
       return res.status(200).json(settings);
     }

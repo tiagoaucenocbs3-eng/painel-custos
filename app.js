@@ -64,8 +64,21 @@
     state.currentView = viewName;
     $$('.view').forEach((view) => view.classList.toggle('active', view.id === viewName));
     $$('.nav-btn').forEach((btn) => btn.classList.toggle('active', btn.dataset.view === viewName));
-    const titles = { dashboard: 'Dashboard', entries: 'Lançamentos', calendar: 'Calendário', reports: 'Relatórios', goals: 'Metas', settings: 'Configurações' };
+    const titles = {
+      dashboard: 'Dashboard',
+      entries: 'Lançamentos',
+      calendar: 'Calendário',
+      reports: 'Relatórios',
+      converter: 'Conversor de Moedas',
+      goals: 'Metas',
+      settings: 'Configurações'
+    };
     $('#viewTitle').textContent = titles[viewName] || 'Dashboard';
+
+    if (viewName === 'converter') {
+      fetchExchangeRates();
+    }
+
     render();
   }
 
@@ -652,6 +665,12 @@
     $('#closeDialog').onclick = () => $('#detailsDialog').close();
     $$('#entriesTable th[data-sort]').forEach((th) => th.onclick = () => sortBy(th.dataset.sort));
     window.addEventListener('resize', debounce(() => renderDashboardCharts(entriesInCurrentPeriod()), 150));
+
+    // Eventos do Conversor de Moedas
+    if ($('#refreshRatesBtn')) $('#refreshRatesBtn').onclick = fetchExchangeRates;
+    if ($('#calcSourceCurrency')) $('#calcSourceCurrency').onchange = calculateConversion;
+    if ($('#calcTargetCurrency')) $('#calcTargetCurrency').onchange = calculateConversion;
+    if ($('#calcAmount')) $('#calcAmount').oninput = calculateConversion;
   }
 
   function sortBy(key) {
@@ -675,16 +694,142 @@
     renderFormPreview();
   }
 
-  function init() {
+  // --- Funções Auxiliares do Conversor de Moedas ---
+  let exchangeRates = { USD: 0, EUR: 0, GBP: 0 };
+
+  async function fetchExchangeRates() {
+    const refreshBtn = $('#refreshRatesBtn');
+    if (refreshBtn) {
+      refreshBtn.textContent = 'Atualizando...';
+      refreshBtn.disabled = true;
+    }
+
+    try {
+      const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,GBP-BRL');
+      if (!res.ok) throw new Error('Erro ao buscar taxas');
+      const data = await res.json();
+
+      if (data.USDBRL && data.EURBRL && data.GBPBRL) {
+        exchangeRates.USD = Number(data.USDBRL.ask);
+        exchangeRates.EUR = Number(data.EURBRL.ask);
+        exchangeRates.GBP = Number(data.GBPBRL.ask);
+
+        $('#rateUSD').textContent = fmtMoney(exchangeRates.USD);
+        $('#rateEUR').textContent = fmtMoney(exchangeRates.EUR);
+        $('#rateGBP').textContent = fmtMoney(exchangeRates.GBP);
+
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('pt-BR');
+        const timeStr = now.toLocaleTimeString('pt-BR');
+        $('#ratesUpdatedLabel').textContent = `Cotações atualizadas em: ${dateStr} às ${timeStr}`;
+
+        calculateConversion();
+      }
+    } catch (err) {
+      console.error('Falha ao obter cotações da API AwesomeAPI:', err);
+      toast('Erro ao buscar cotações online.');
+    } finally {
+      if (refreshBtn) {
+        refreshBtn.textContent = 'Atualizar Cotações';
+        refreshBtn.disabled = false;
+      }
+    }
+  }
+
+  function calculateConversion() {
+    const source = $('#calcSourceCurrency').value;
+    const target = $('#calcTargetCurrency').value;
+    const amount = Number($('#calcAmount').value) || 0;
+
+    let valueInBrl = 0;
+
+    // 1. Converter de SOURCE para Real (BRL)
+    if (source === 'BRL') {
+      valueInBrl = amount;
+    } else {
+      const rateToBrl = exchangeRates[source] || 0;
+      valueInBrl = amount * rateToBrl;
+    }
+
+    // 2. Converter de Real (BRL) para TARGET
+    let finalValue = 0;
+    if (target === 'BRL') {
+      finalValue = valueInBrl;
+    } else {
+      const rateToBrl = exchangeRates[target] || 0;
+      finalValue = rateToBrl > 0 ? valueInBrl / rateToBrl : 0;
+    }
+
+    // 3. Formatar o resultado
+    let formatted = '';
+    if (target === 'BRL') {
+      formatted = fmtMoney(finalValue);
+    } else {
+      const currencySymbols = { USD: '$', EUR: '€', GBP: '£' };
+      const symbol = currencySymbols[target] || target;
+      formatted = `${symbol} ${formatters.decimal.format(finalValue)}`;
+    }
+
+    $('#calcResult').textContent = formatted;
+  }
+
+  // --- Fluxo de Autenticação / Login ---
+  function showLoginOverlay(show, message = '') {
+    const overlay = $('#loginOverlay');
+    const errorDiv = $('#loginError');
+    if (show) {
+      overlay.classList.remove('hidden');
+      if (message) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+      }
+    } else {
+      overlay.classList.add('hidden');
+    }
+  }
+
+  // Expor globalmente para storage.js disparar em caso de erro 401
+  window.showLoginOverlay = showLoginOverlay;
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    const password = $('#loginPassword').value;
+    const errorDiv = $('#loginError');
+    errorDiv.style.display = 'none';
+    errorDiv.textContent = '';
+
+    try {
+      await store.login(password);
+      showLoginOverlay(false);
+      startApp();
+    } catch (err) {
+      errorDiv.textContent = 'Senha incorreta. Tente novamente.';
+      errorDiv.style.display = 'block';
+    }
+  }
+
+  function startApp() {
     const todayISO = calc.toISODate(new Date());
     $('#customStart').value = todayISO;
     $('#customEnd').value = todayISO;
     $('#calendarMonth').value = todayISO.slice(0, 7);
+
     store.seedSampleData(false);
     refreshData();
     clearForm(todayISO);
     attachEvents();
     render();
+  }
+
+  async function init() {
+    $('#loginForm').onsubmit = handleLogin;
+
+    const authInfo = await store.checkAuthRequired();
+    if (authInfo.required && !store.isAuthenticated()) {
+      showLoginOverlay(true);
+    } else {
+      startApp();
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);

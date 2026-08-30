@@ -2,11 +2,33 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Painel de Operação</title>
   <link rel="stylesheet" href="style.css">
+  
+  <!-- PWA e iOS shortcut config -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#080d18">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Painel Custos">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2916/2916115.png">
 </head>
 <body>
+  <!-- Tela de Login Overlay -->
+  <div id="loginOverlay" class="login-overlay hidden">
+    <div class="login-card">
+      <div class="brand-mark" style="margin: 0 auto 15px auto;">PO</div>
+      <h2>Painel de Operação</h2>
+      <p style="margin-bottom: 20px; font-size: 0.9rem; color: #8da0bf;">Insira a senha de acesso para entrar</p>
+      <form id="loginForm">
+        <input type="password" id="loginPassword" placeholder="Sua senha..." required autocomplete="current-password">
+        <button type="submit" class="primary" style="width: 100%;">Entrar no Painel</button>
+      </form>
+      <div id="loginError" class="login-error"></div>
+    </div>
+  </div>
+
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
@@ -21,6 +43,7 @@
         <button class="nav-btn" data-view="entries">Lançamentos</button>
         <button class="nav-btn" data-view="calendar">Calendário</button>
         <button class="nav-btn" data-view="reports">Relatórios</button>
+        <button class="nav-btn" data-view="converter">Conversor</button>
         <button class="nav-btn" data-view="goals">Metas</button>
         <button class="nav-btn" data-view="settings">Configurações</button>
       </nav>
@@ -226,6 +249,62 @@
         <section class="panel">
           <div class="panel-head"><div><h2>Tabela do relatório</h2><p>Dados do período selecionado</p></div></div>
           <div class="table-wrap"><table id="reportsTable"><thead></thead><tbody></tbody></table></div>
+        </section>
+      </section>
+
+      <section id="converter" class="view">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Conversor de Moedas</h2>
+              <p>Busca cotações em tempo real e calcula conversões para Real (BRL)</p>
+            </div>
+            <button id="refreshRatesBtn" class="ghost">Atualizar Cotações</button>
+          </div>
+          
+          <div class="converter-layout">
+            <div class="rates-display">
+              <h3>Cotações Atuais (AwesomeAPI)</h3>
+              <div id="ratesList" class="rates-list">
+                <div class="rate-card"><span>Dólar (USD)</span><strong id="rateUSD">Carregando...</strong></div>
+                <div class="rate-card"><span>Euro (EUR)</span><strong id="rateEUR">Carregando...</strong></div>
+                <div class="rate-card"><span>Libra (GBP)</span><strong id="rateGBP">Carregando...</strong></div>
+              </div>
+              <p id="ratesUpdatedLabel" class="rates-updated">Cotações atualizadas em: --</p>
+            </div>
+
+            <div class="calculator-panel">
+              <h3>Calculadora de Conversão</h3>
+              <div class="calculator-grid">
+                <label>
+                  De:
+                  <select id="calcSourceCurrency">
+                    <option value="USD" selected>Dólar (USD)</option>
+                    <option value="EUR">Euro (EUR)</option>
+                    <option value="GBP">Libra (GBP)</option>
+                    <option value="BRL">Real (BRL)</option>
+                  </select>
+                </label>
+                <label>
+                  Para:
+                  <select id="calcTargetCurrency">
+                    <option value="BRL" selected>Real (BRL)</option>
+                    <option value="USD">Dólar (USD)</option>
+                    <option value="EUR">Euro (EUR)</option>
+                    <option value="GBP">Libra (GBP)</option>
+                  </select>
+                </label>
+                <label class="full-span-calc">
+                  Valor a converter:
+                  <input type="number" id="calcAmount" step="0.01" min="0" placeholder="100.00" value="100">
+                </label>
+              </div>
+              <div class="calc-result-box">
+                <span>Resultado convertido</span>
+                <strong id="calcResult">R$ 0,00</strong>
+              </div>
+            </div>
+          </div>
         </section>
       </section>
 

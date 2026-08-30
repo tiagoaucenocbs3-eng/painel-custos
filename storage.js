@@ -5,24 +5,140 @@
   const SETTINGS_KEY = 'painelOperacao.settings.v1';
   const SEEDED_KEY = 'painelOperacao.seeded.v1';
 
-  // Chaves para sincronização com banco de dados
+  // Chaves para sincronização e autenticação
   const PENDING_DELETES_KEY = 'painelOperacao.pendingDeletes.v1';
   const PENDING_UPSERTS_KEY = 'painelOperacao.pendingUpserts.v1';
   const MIGRATED_KEY = 'painelOperacao.migratedToCloud.v1';
+  const AUTH_TOKEN_KEY = 'painelOperacao.password.v1';
 
-  const defaultSettings = {
-    defaultIof: 3.5,
-    roasMin: 1.8,
-    roasGood: 2.5,
-    roiMin: 50,
-    roiGood: 140,
-    cpaMax: 50,
-    dailyRevenueGoal: 3500,
-    dailySalesGoal: 30,
-    monthlyRevenueGoal: 100000,
-    monthlyProfitGoal: 65000,
-    currency: 'BRL',
+  // BACKUP REAL DO USUÁRIO (21 a 30 de agosto de 2026)
+  const DEFAULT_BACKUP = {
+    entries: [
+      {
+        "id": "0a950706-04a2-4302-b3c6-bc992c5977e8",
+        "date": "2026-08-21",
+        "adSpend": 295.15,
+        "iofPercent": 3.5,
+        "sales": 0,
+        "revenue": 0,
+        "notes": "Inicio de testes de criativo",
+        "sample": false,
+        "createdAt": "2026-08-28T23:13:18.020Z",
+        "updatedAt": "2026-08-30T13:47:22.818Z"
+      },
+      {
+        "id": "7a8971f7-1ce5-42c5-ba8a-a1cca46464fb",
+        "date": "2026-08-22",
+        "adSpend": 907.79,
+        "iofPercent": 3.5,
+        "sales": 6,
+        "revenue": 1096.81,
+        "notes": "",
+        "sample": false,
+        "createdAt": "2026-08-28T23:14:20.046Z",
+        "updatedAt": "2026-08-30T13:47:22.818Z"
+      },
+      {
+        "id": "ed2654ea-ade1-4270-83ae-e935c405de07",
+        "date": "2026-08-23",
+        "adSpend": 966.94,
+        "iofPercent": 3.5,
+        "sales": 14,
+        "revenue": 3286.96,
+        "notes": "",
+        "sample": false,
+        "createdAt": "2026-08-28T23:15:01.352Z",
+        "updatedAt": "2026-08-30T13:47:22.818Z"
+      },
+      {
+        "id": "a4106b6f-0eb3-4743-b2df-8788910b5bc9",
+        "date": "2026-08-24",
+        "adSpend": 573.17,
+        "iofPercent": 3.5,
+        "sales": 2,
+        "revenue": 399.8,
+        "notes": "",
+        "sample": false,
+        "createdAt": "2026-08-28T23:15:34.953Z",
+        "updatedAt": "2026-08-30T13:47:22.818Z"
+      },
+      {
+        "id": "7494ecd3-84c6-41d9-b4c6-7ffd4768e3c3",
+        "date": "2026-08-25",
+        "adSpend": 840.79,
+        "iofPercent": 3.5,
+        "sales": 2,
+        "revenue": 400.55,
+        "notes": "",
+        "sample": false,
+        "createdAt": "2026-08-28T23:16:05.718Z",
+        "updatedAt": "2026-08-30T13:47:22.818Z"
+      },
+      {
+        "id": "feed4d20-88de-43a7-8a9a-243773156755",
+        "date": "2026-08-26",
+        "adSpend": 316.5,
+        "iofPercent": 3.5,
+        "sales": 0,
+        "revenue": 0,
+        "notes": "",
+        "sample": false,
+        "createdAt": "2026-08-28T23:16:31.591Z",
+        "updatedAt": "2026-08-30T13:47:22.818Z"
+      },
+      {
+        "id": "fe0228e5-eeb9-4194-b183-0a7c16bc2088",
+        "date": "2026-08-28",
+        "adSpend": 1004.81,
+        "iofPercent": 3.5,
+        "sales": 15,
+        "revenue": 3393.16,
+        "notes": "",
+        "sample": false,
+        "createdAt": "2026-08-29T03:02:24.615Z",
+        "updatedAt": "2026-08-30T13:47:22.818Z"
+      },
+      {
+        "id": "5a3e0cb6-1f54-41c0-8232-a098e789939f",
+        "date": "2026-08-29",
+        "adSpend": 1372.62,
+        "iofPercent": 3.5,
+        "sales": 8,
+        "revenue": 2005.5,
+        "notes": "",
+        "sample": false,
+        "createdAt": "2026-08-30T02:49:41.078Z",
+        "updatedAt": "2026-08-30T13:47:22.818Z"
+      },
+      {
+        "id": "fbd06563-65b3-45e4-a6cb-735d4ce741a5",
+        "date": "2026-08-30",
+        "adSpend": 1021.01,
+        "iofPercent": 3.5,
+        "sales": 10,
+        "revenue": 2018.14,
+        "notes": "",
+        "sample": false,
+        "createdAt": "2026-08-30T13:31:06.645Z",
+        "updatedAt": "2026-08-30T13:47:22.818Z"
+      }
+    ],
+    settings: {
+      "defaultIof": 3.5,
+      "roasMin": 1.8,
+      "roasGood": 2.5,
+      "roiMin": 50,
+      "roiGood": 140,
+      "cpaMax": 50,
+      "dailyRevenueGoal": 3500,
+      "dailySalesGoal": 30,
+      "monthlyRevenueGoal": 100000,
+      "monthlyProfitGoal": 65000,
+      "currency": "BRL"
+    }
   };
+
+  const defaultSettings = DEFAULT_BACKUP.settings;
 
   function readJSON(key, fallback) {
     try {
@@ -58,47 +174,68 @@
     };
   }
 
-  // --- Módulo de API ---
+  // --- Função Auxiliar de Autenticação ---
+  function getAuthHeaders(extraHeaders = {}) {
+    const password = localStorage.getItem(AUTH_TOKEN_KEY) || '';
+    return {
+      'Authorization': password,
+      ...extraHeaders
+    };
+  }
+
+  // --- Módulo de API com cabeçalho de Autenticação ---
   const api = {
     async fetchEntries() {
-      const res = await fetch('/api/entries');
+      const res = await fetch('/api/entries', {
+        headers: getAuthHeaders()
+      });
+      if (res.status === 401) throw new Error('AUTH_ERROR');
       if (!res.ok) throw new Error('Falha ao buscar lançamentos da API');
       return res.json();
     },
     async upsertEntry(entry) {
       const res = await fetch('/api/entries', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(entry),
       });
+      if (res.status === 401) throw new Error('AUTH_ERROR');
       if (!res.ok) throw new Error('Falha ao salvar lançamento na API');
       return res.json();
     },
     async deleteEntry(id) {
       const res = await fetch(`/api/entries?id=${id}`, {
         method: 'DELETE',
+        headers: getAuthHeaders()
       });
+      if (res.status === 401) throw new Error('AUTH_ERROR');
       if (!res.ok) throw new Error('Falha ao excluir lançamento na API');
       return res.json();
     },
     async clearAllEntries() {
       const res = await fetch('/api/entries?all=true', {
         method: 'DELETE',
+        headers: getAuthHeaders()
       });
+      if (res.status === 401) throw new Error('AUTH_ERROR');
       if (!res.ok) throw new Error('Falha ao limpar lançamentos na API');
       return res.json();
     },
     async fetchSettings() {
-      const res = await fetch('/api/settings');
+      const res = await fetch('/api/settings', {
+        headers: getAuthHeaders()
+      });
+      if (res.status === 401) throw new Error('AUTH_ERROR');
       if (!res.ok) throw new Error('Falha ao buscar configurações da API');
       return res.json();
     },
     async saveSettings(settings) {
       const res = await fetch('/api/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(settings),
       });
+      if (res.status === 401) throw new Error('AUTH_ERROR');
       if (!res.ok) throw new Error('Falha ao salvar configurações na API');
       return res.json();
     },
@@ -117,7 +254,6 @@
       upserts.push(entry);
       savePendingUpserts(upserts);
     }
-    // Tenta enviar em background imediatamente
     api.upsertEntry(entry)
       .then(() => {
         savePendingUpserts(getPendingUpserts().filter(x => x.id !== entry.id));
@@ -131,9 +267,7 @@
       deletes.push(id);
       savePendingDeletes(deletes);
     }
-    // Remove da fila de upserts se estiver lá
     savePendingUpserts(getPendingUpserts().filter(x => x.id !== id));
-    // Tenta excluir em background imediatamente
     api.deleteEntry(id)
       .then(() => {
         savePendingDeletes(getPendingDeletes().filter(x => x !== id));
@@ -158,11 +292,30 @@
     localStorage.setItem(MIGRATED_KEY, 'true');
   }
 
-  // Variável para evitar requisições de sincronização simultâneas
+  // Inicializar com o backup real se estiver totalmente vazio
+  function checkAndInitializeDefaultBackup() {
+    const current = readJSON(ENTRY_KEY, []);
+    const seededState = localStorage.getItem(SEEDED_KEY);
+    
+    if (current.length === 0 && seededState !== 'deleted' && seededState !== 'manual-import') {
+      writeJSON(ENTRY_KEY, DEFAULT_BACKUP.entries);
+      writeJSON(SETTINGS_KEY, DEFAULT_BACKUP.settings);
+      localStorage.setItem(SEEDED_KEY, 'default-backup-seeded');
+    }
+  }
+
   let isSyncing = false;
 
   async function syncWithCloud() {
     if (location.protocol === 'file:' || isSyncing) return;
+    
+    // Se a senha for exigida e não estivermos logados, não sincroniza
+    const authInfo = await storage.checkAuthRequired();
+    if (authInfo.required && !storage.isAuthenticated()) {
+      console.warn('[Sync] Sincronização bloqueada: Senha necessária.');
+      return;
+    }
+
     isSyncing = true;
     console.log('[Sync] Iniciando sincronização com o Supabase...');
 
@@ -174,6 +327,7 @@
           await api.deleteEntry(id);
           savePendingDeletes(getPendingDeletes().filter(x => x !== id));
         } catch (err) {
+          if (err.message === 'AUTH_ERROR') { handleAuthError(); return; }
           console.warn('[Sync] Falha ao enviar exclusão pendente para ID:', id, err);
         }
       }
@@ -185,6 +339,7 @@
           await api.upsertEntry(entry);
           savePendingUpserts(getPendingUpserts().filter(x => x.id !== entry.id));
         } catch (err) {
+          if (err.message === 'AUTH_ERROR') { handleAuthError(); return; }
           console.warn('[Sync] Falha ao enviar lançamento pendente para ID:', entry.id, err);
         }
       }
@@ -196,20 +351,18 @@
         const cloudSettings = await api.fetchSettings();
         if (cloudSettings && typeof cloudSettings === 'object' && Object.keys(cloudSettings).length > 0) {
           const localSettings = readJSON(SETTINGS_KEY, {});
-          
-          // Se as configurações da nuvem forem diferentes das locais, sobrescreve local
           if (JSON.stringify(cloudSettings) !== JSON.stringify(localSettings)) {
             writeJSON(SETTINGS_KEY, { ...defaultSettings, ...cloudSettings });
             dataChanged = true;
           }
         } else {
-          // Se não há nada na nuvem, sobe as configurações locais
           const localSettings = readJSON(SETTINGS_KEY, null);
           if (localSettings) {
             await api.saveSettings(localSettings);
           }
         }
       } catch (err) {
+        if (err.message === 'AUTH_ERROR') { handleAuthError(); return; }
         console.warn('[Sync] Erro ao sincronizar configurações da nuvem:', err);
       }
 
@@ -226,7 +379,6 @@
           for (const cloudEntry of cloudEntries) {
             const local = localMap.get(cloudEntry.id);
             if (!local) {
-              // Se não existe localmente e não foi excluído localmente nesta aba
               if (!getPendingDeletes().includes(cloudEntry.id)) {
                 merged.push(cloudEntry);
                 dataChanged = true;
@@ -236,14 +388,12 @@
               const cloudTime = new Date(cloudEntry.updatedAt || cloudEntry.createdAt || 0).getTime();
 
               if (cloudTime > localTime) {
-                // Nuvem é mais recente, atualiza local
                 const idx = merged.findIndex(x => x.id === cloudEntry.id);
                 if (idx >= 0) {
                   merged[idx] = cloudEntry;
                   dataChanged = true;
                 }
               } else if (localTime > cloudTime && !local.sample) {
-                // Local é mais recente, envia para a nuvem
                 queueUpsert(local);
               }
             }
@@ -256,8 +406,6 @@
             if (!cloudMap.has(localEntry.id)) {
               if (getPendingDeletes().includes(localEntry.id)) continue;
 
-              // Se não está na fila de upsert pendente e não está na nuvem,
-              // significa que foi excluído na nuvem por outro dispositivo, logo deleta localmente
               const upserts = getPendingUpserts();
               const isPending = upserts.some(x => x.id === localEntry.id);
 
@@ -268,7 +416,6 @@
                   dataChanged = true;
                 }
               } else {
-                // Está na fila de pendências, então tenta enviar
                 queueUpsert(localEntry);
               }
             }
@@ -280,6 +427,7 @@
           }
         }
       } catch (err) {
+        if (err.message === 'AUTH_ERROR') { handleAuthError(); return; }
         console.warn('[Sync] Erro ao sincronizar lançamentos da nuvem:', err);
       }
 
@@ -293,6 +441,15 @@
       console.error('[Sync] Erro geral na sincronização:', error);
     } finally {
       isSyncing = false;
+    }
+  }
+
+  function handleAuthError() {
+    isSyncing = false;
+    console.warn('[Sync] Senha incorreta detectada durante a chamada de API. Expulsando sessão...');
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    if (typeof window !== 'undefined' && typeof window.showLoginOverlay === 'function') {
+      window.showLoginOverlay(true, 'Sessão expirada. Insira a senha novamente.');
     }
   }
 
@@ -313,7 +470,6 @@
       else entries.push(normalized);
       this.saveEntries(entries);
 
-      // Sincronizar em background
       if (location.protocol !== 'file:') {
         queueUpsert(normalized);
       }
@@ -324,7 +480,6 @@
       const entries = this.getEntries().filter((item) => item.id !== id);
       this.saveEntries(entries);
 
-      // Sincronizar em background
       if (location.protocol !== 'file:') {
         queueDelete(id);
       }
@@ -336,9 +491,9 @@
       const clean = { ...defaultSettings, ...settings };
       writeJSON(SETTINGS_KEY, clean);
 
-      // Sincronizar em background
       if (location.protocol !== 'file:') {
         api.saveSettings(clean).catch(err => {
+          if (err.message === 'AUTH_ERROR') handleAuthError();
           console.warn('Falha imediata ao salvar configurações na API:', err);
         });
       }
@@ -361,7 +516,6 @@
       this.saveSettings({ ...defaultSettings, ...backup.settings });
       localStorage.setItem(SEEDED_KEY, 'manual-import');
 
-      // Sincronizar tudo para a nuvem
       if (location.protocol !== 'file:') {
         const entries = this.getEntries().filter(e => !e.sample);
         for (const entry of entries) {
@@ -411,29 +565,73 @@
       localStorage.removeItem(MIGRATED_KEY);
       localStorage.removeItem(PENDING_DELETES_KEY);
       localStorage.removeItem(PENDING_UPSERTS_KEY);
+      localStorage.removeItem(AUTH_TOKEN_KEY);
 
-      // Limpar banco na nuvem
       if (location.protocol !== 'file:') {
         api.clearAllEntries().catch(err => {
           console.warn('Falha ao limpar banco de dados na nuvem:', err);
         });
       }
     },
+    // --- Funções Auxiliares de Login ---
+    async login(password) {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      
+      if (!res.ok) {
+        throw new Error('Senha incorreta.');
+      }
+      
+      const data = await res.json();
+      localStorage.setItem(AUTH_TOKEN_KEY, password);
+      
+      // Forçar sincronização imediata
+      syncWithCloud();
+      return data;
+    },
+    logout() {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      location.reload();
+    },
+    isAuthenticated() {
+      return !!localStorage.getItem(AUTH_TOKEN_KEY);
+    },
+    async checkAuthRequired() {
+      if (location.protocol === 'file:') return { required: false };
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: '' }),
+        });
+        if (res.ok) {
+          return { required: false }; // APP_PASSWORD está vazio, não exige senha
+        }
+        return { required: true }; // Retorna 401, então exige senha
+      } catch (err) {
+        console.warn('Erro ao verificar se senha é exigida:', err);
+        return { required: false }; // Fallback local
+      }
+    },
+    triggerSync() {
+      syncWithCloud();
+    }
   };
 
-  // Inicializar migração e agendar sincronizações
+  // Inicializar dados e agendar sincronizações
   if (typeof window !== 'undefined') {
+    checkAndInitializeDefaultBackup();
     migrateLocalToPending();
 
     if (location.protocol !== 'file:') {
-      // Sincronizar após carregamento completo
       window.addEventListener('load', () => {
         setTimeout(syncWithCloud, 1000);
       });
-      // Sincronizar ao focar na janela/aba ou voltar online
       window.addEventListener('focus', syncWithCloud);
       window.addEventListener('online', syncWithCloud);
-      // Sincronização periódica a cada 1 minuto
       setInterval(syncWithCloud, 60000);
     }
   }
