@@ -790,17 +790,18 @@
 
   async function handleLogin(e) {
     e.preventDefault();
+    const username = $('#loginUsername').value;
     const password = $('#loginPassword').value;
     const errorDiv = $('#loginError');
     errorDiv.style.display = 'none';
     errorDiv.textContent = '';
 
     try {
-      await store.login(password);
+      await store.login(username, password);
       showLoginOverlay(false);
       startApp();
     } catch (err) {
-      errorDiv.textContent = 'Senha incorreta. Tente novamente.';
+      errorDiv.textContent = 'Usuário ou senha incorretos. Tente novamente.';
       errorDiv.style.display = 'block';
     }
   }

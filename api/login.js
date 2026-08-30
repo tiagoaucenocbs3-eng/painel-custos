@@ -1,3 +1,4 @@
+const APP_USERNAME = process.env.APP_USERNAME || 'admin';
 const APP_PASSWORD = process.env.APP_PASSWORD;
 
 module.exports = async (req, res) => {
@@ -14,18 +15,18 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Para simplificar sem dependência extra (body-parser), o Vercel já parseia req.body automaticamente
-    const { password } = req.body || {};
+    const { username, password } = req.body || {};
 
     if (!APP_PASSWORD) {
       // Se não há senha configurada nas variáveis de ambiente da Vercel, libera acesso automático
       return res.status(200).json({ success: true, required: false });
     }
 
-    if (password === APP_PASSWORD) {
+    // Valida usuário (usa o definido no env ou o padrão 'admin') e a senha
+    if (password === APP_PASSWORD && username === APP_USERNAME) {
       return res.status(200).json({ success: true, required: true });
     } else {
-      return res.status(401).json({ error: 'Senha incorreta.' });
+      return res.status(401).json({ error: 'Usuário ou senha incorretos.' });
     }
   } catch (error) {
     console.error('Erro na API de login:', error);

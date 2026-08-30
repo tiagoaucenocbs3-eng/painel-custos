@@ -20,9 +20,10 @@
     <div class="login-card">
       <div class="brand-mark" style="margin: 0 auto 15px auto;">PO</div>
       <h2>Painel de Operação</h2>
-      <p style="margin-bottom: 20px; font-size: 0.9rem; color: #8da0bf;">Insira a senha de acesso para entrar</p>
+      <p style="margin-bottom: 20px; font-size: 0.9rem; color: #8da0bf;">Insira seu usuário e senha para entrar</p>
       <form id="loginForm">
-        <input type="password" id="loginPassword" placeholder="Sua senha..." required autocomplete="current-password">
+        <input type="text" id="loginUsername" placeholder="Usuário..." required autocomplete="username" style="margin-bottom: 12px;">
+        <input type="password" id="loginPassword" placeholder="Senha..." required autocomplete="current-password">
         <button type="submit" class="primary" style="width: 100%;">Entrar no Painel</button>
       </form>
       <div id="loginError" class="login-error"></div>

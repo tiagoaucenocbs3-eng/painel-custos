@@ -580,16 +580,15 @@
         });
       }
     },
-    // --- Funções Auxiliares de Login ---
-    async login(password) {
+    async login(username, password) {
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ username, password }),
       });
       
       if (!res.ok) {
-        throw new Error('Senha incorreta.');
+        throw new Error('Usuário ou senha incorretos.');
       }
       
       const data = await res.json();
