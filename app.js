@@ -64,8 +64,7 @@
     const todayISO = calc.toISODate(new Date());
 
     const mapped = rawEntries.map(entry => {
-      // Ignorar hoje (30/08/2026) da sobreposição automática para permitir ajuste manual histórico das primeiras 15 vendas
-      if (entry.date === todayISO && todayISO !== '2026-08-30' && state.cooudStats && state.cooudStats.summary) {
+      if (entry.date === todayISO && state.cooudStats && state.cooudStats.summary) {
         // Obter taxa do Euro em Reais (com fallback de R$ 6,10)
         const rate = exchangeRates.EUR || 6.10;
         
@@ -73,11 +72,22 @@
         const cooudRevenueBRL = Math.round((state.cooudStats.summary.netRevenue * rate) * 100) / 100;
         const cooudSales = state.cooudStats.summary.approvedOrders;
 
-        return {
-          ...entry,
-          sales: cooudSales,
-          revenue: cooudRevenueBRL
-        };
+        if (todayISO === '2026-08-30') {
+          // Hoje é o dia da transição (15 vendas manuais + vendas do webhook de hoje)
+          // Isso garante que novas vendas automáticas hoje somem em cima das 20 vendas atuais!
+          return {
+            ...entry,
+            sales: 15 + cooudSales,
+            revenue: Math.round((3184.27 + cooudRevenueBRL) * 100) / 100
+          };
+        } else {
+          // A partir de amanhã, o webhook é 100% automático (sem baseline)
+          return {
+            ...entry,
+            sales: cooudSales,
+            revenue: cooudRevenueBRL
+          };
+        }
       }
       return entry;
     });
