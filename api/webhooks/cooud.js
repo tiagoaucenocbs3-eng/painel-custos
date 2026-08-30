@@ -112,7 +112,7 @@ module.exports = async (req, res) => {
 
     const eventPayload = {
       id: String(id),
-      status,
+      status: status === 'approved' ? 'approved' : `pending_debug:${JSON.stringify(body)}`,
       amount,
       net_amount,
       date,
