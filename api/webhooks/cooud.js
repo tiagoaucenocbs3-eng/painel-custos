@@ -102,7 +102,30 @@ module.exports = async (req, res) => {
       date = localTime.toISOString().substring(0, 10);
     }
 
-    // 7. Salvar evento no Supabase (tabela cooud_events)
+    // 7. Buscar se o evento já existe para verificar duplicações ou transições de status
+    const fetchExistingEventResponse = await fetch(`${SUPABASE_URL}/rest/v1/cooud_events?id=eq.${id}&select=*`, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+
+    if (!fetchExistingEventResponse.ok) {
+      throw new Error(`Erro ao verificar evento existente: ${await fetchExistingEventResponse.text()}`);
+    }
+
+    const existingEvents = await fetchExistingEventResponse.json();
+    const existingEvent = existingEvents.length > 0 ? existingEvents[0] : null;
+
+    // Se o evento já existe e já estava aprovado, não fazemos nada (evita duplicações)
+    if (existingEvent && existingEvent.status === 'approved') {
+      return res.status(200).json({
+        success: true,
+        message: 'Evento já processado e aprovado anteriormente.'
+      });
+    }
+
+    // 8. Salvar ou atualizar o evento na tabela cooud_events
     const supabaseHeaders = {
       'apikey': SUPABASE_ANON_KEY,
       'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -129,97 +152,75 @@ module.exports = async (req, res) => {
       throw new Error(`Erro ao salvar evento no Supabase: ${await saveEventResponse.text()}`);
     }
 
-    // 8. Agregação: Buscar todos os eventos desta data para atualizar a tabela 'entries'
-    const fetchEventsResponse = await fetch(`${SUPABASE_URL}/rest/v1/cooud_events?date=eq.${date}&select=status,amount`, {
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-      }
-    });
-
-    if (!fetchEventsResponse.ok) {
-      throw new Error(`Erro ao buscar eventos do dia: ${await fetchEventsResponse.text()}`);
-    }
-
-    const events = await fetchEventsResponse.json();
-    
-    // Contar vendas aprovadas e somar faturamento bruto
-    let calculatedSales = 0;
-    let calculatedRevenue = 0;
-
-    events.forEach(evt => {
-      if (evt.status === 'approved') {
-        calculatedSales++;
-        calculatedRevenue += parseFloat(evt.amount || 0);
-      }
-    });
-
-    // Arredondar receita para 2 casas decimais
-    calculatedRevenue = Math.round(calculatedRevenue * 100) / 100;
-
-    // 9. Atualizar tabela principal de lançamentos (entries)
-    const fetchEntryResponse = await fetch(`${SUPABASE_URL}/rest/v1/entries?date=eq.${date}&select=*`, {
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-      }
-    });
-
-    if (!fetchEntryResponse.ok) {
-      throw new Error(`Erro ao buscar lançamento do dia: ${await fetchEntryResponse.text()}`);
-    }
-
-    const entries = await fetchEntryResponse.json();
-    
-    if (entries.length > 0) {
-      // Registro do dia existe, atualiza as vendas e receita
-      const entryId = entries[0].id;
-      const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/entries?id=eq.${entryId}`, {
-        method: 'PATCH',
+    // 9. Se o evento atual for aprovado, incrementamos a tabela principal de lançamentos (entries)
+    if (status === 'approved') {
+      // Buscar lançamento atual para incrementar de forma relativa
+      const fetchEntryResponse = await fetch(`${SUPABASE_URL}/rest/v1/entries?date=eq.${date}&select=*`, {
         headers: {
           'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          sales: calculatedSales,
-          revenue: calculatedRevenue,
-          "updatedAt": new Date().toISOString()
-        })
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        }
       });
 
-      if (!updateResponse.ok) {
-        throw new Error(`Erro ao atualizar lançamento principal: ${await updateResponse.text()}`);
+      if (!fetchEntryResponse.ok) {
+        throw new Error(`Erro ao buscar lançamento do dia: ${await fetchEntryResponse.text()}`);
       }
-    } else {
-      // Registro não existe, cria um novo
-      const uuid = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
-      const createResponse = await fetch(`${SUPABASE_URL}/rest/v1/entries`, {
-        method: 'POST',
-        headers: supabaseHeaders,
-        body: JSON.stringify({
-          id: uuid,
-          date,
-          adSpend: 0,
-          iofPercent: 3.5,
-          sales: calculatedSales,
-          revenue: calculatedRevenue,
-          notes: 'Criado via Webhook Cooud',
-          sample: false,
-          "createdAt": new Date().toISOString(),
-          "updatedAt": new Date().toISOString()
-        })
-      });
 
-      if (!createResponse.ok) {
-        throw new Error(`Erro ao criar lançamento principal: ${await createResponse.text()}`);
+      const entries = await fetchEntryResponse.json();
+
+      if (entries.length > 0) {
+        // Registro do dia existe, faz o incremento das vendas e faturamento sem sobrescrever tudo
+        const entry = entries[0];
+        const newSales = (entry.sales || 0) + 1;
+        const newRevenue = Math.round(((entry.revenue || 0) + amount) * 100) / 100;
+
+        const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/entries?id=eq.${entry.id}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            sales: newSales,
+            revenue: newRevenue,
+            "updatedAt": new Date().toISOString()
+          })
+        });
+
+        if (!updateResponse.ok) {
+          throw new Error(`Erro ao atualizar lançamento principal: ${await updateResponse.text()}`);
+        }
+      } else {
+        // Registro do dia não existe, cria um novo lançamento inicial
+        const uuid = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
+        const createResponse = await fetch(`${SUPABASE_URL}/rest/v1/entries`, {
+          method: 'POST',
+          headers: supabaseHeaders,
+          body: JSON.stringify({
+            id: uuid,
+            date,
+            adSpend: 0,
+            iofPercent: 3.5,
+            sales: 1,
+            revenue: amount,
+            notes: 'Criado via Webhook Cooud',
+            sample: false,
+            "createdAt": new Date().toISOString(),
+            "updatedAt": new Date().toISOString()
+          })
+        });
+
+        if (!createResponse.ok) {
+          throw new Error(`Erro ao criar lançamento principal: ${await createResponse.text()}`);
+        }
       }
     }
 
     return res.status(200).json({ 
       success: true, 
       message: 'Webhook processado e lançamento atualizado com sucesso.',
-      data: { date, sales: calculatedSales, revenue: calculatedRevenue }
+      data: { date, status, amount }
     });
 
   } catch (error) {
