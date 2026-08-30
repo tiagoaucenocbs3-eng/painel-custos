@@ -328,7 +328,7 @@ tr:hover td { background: rgba(79,140,255,.045); }
 
 @media (max-width: 900px) {
   .app-shell { display: block; }
-  .sidebar { position: relative; width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border-soft); }
+  .sidebar { position: relative; width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border-soft); padding: 15px; }
   .nav { grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .nav-btn { text-align: center; font-size: 0.85rem; padding: 9px 8px; }
   .topbar, .panel-head { flex-direction: column; align-items: stretch; gap: 12px; }
@@ -341,74 +341,80 @@ tr:hover td { background: rgba(79,140,255,.045); }
 @media (max-width: 768px) {
   .app-shell { display: flex; flex-direction: column; }
   
-  /* Sidebar vira Bottom Bar no celular */
+  /* Menu inferior (estilo app nativo) */
   .sidebar {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    width: 100%;
-    height: 72px;
-    padding: 6px 10px;
-    background: rgba(11, 17, 31, 0.96);
-    border-right: none;
-    border-top: 1px solid var(--border-soft);
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    z-index: 999;
+    width: 100% !important;
+    height: calc(65px + env(safe-area-inset-bottom)) !important;
+    padding: 6px 10px calc(6px + env(safe-area-inset-bottom)) 10px !important;
+    background: rgba(11, 17, 31, 0.96) !important;
+    border-right: none !important;
+    border-top: 1px solid var(--border-soft) !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 9999 !important;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 -4px 30px rgba(0,0,0,0.4);
+    box-shadow: 0 -4px 30px rgba(0,0,0,0.5);
   }
   
   .brand, .sidebar-footer { display: none !important; }
   
   .nav {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-around;
-    width: 100%;
-    gap: 2px;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-around !important;
+    width: 100% !important;
+    gap: 2px !important;
   }
   
   .nav-btn {
-    flex: 1;
-    text-align: center;
-    padding: 8px 4px;
-    font-size: 0.7rem;
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
-    border: none;
-    background: transparent;
-    color: var(--muted);
+    flex: 1 !important;
+    text-align: center !important;
+    padding: 8px 2px !important;
+    font-size: 0.66rem !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    border: none !important;
+    background: transparent !important;
+    color: var(--muted) !important;
   }
   
   .nav-btn:hover {
-    background: transparent;
+    background: transparent !important;
   }
   
   .nav-btn.active {
-    background: rgba(79, 140, 255, 0.12);
-    color: var(--text);
-    border: none;
+    background: rgba(79, 140, 255, 0.12) !important;
+    color: var(--accent-2) !important;
+    border: none !important;
   }
   
+  /* Área de conteúdo principal com Safe Area */
   .main {
-    padding: 16px 16px 92px 16px; /* Evita que o conteúdo suma embaixo da barra */
+    padding: calc(16px + env(safe-area-inset-top)) 12px calc(86px + env(safe-area-inset-bottom)) 12px !important;
   }
   
   .topbar {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+    padding-top: 5px;
+  }
+  
+  .topbar h1 {
+    font-size: 1.65rem;
   }
   
   .period-controls {
     justify-content: flex-start;
-    margin-top: 8px;
+    margin-top: 6px;
     width: 100%;
   }
   
@@ -418,20 +424,111 @@ tr:hover td { background: rgba(79,140,255,.045); }
   
   .period-controls select {
     width: 100%;
+    padding: 8px 10px;
+    font-size: 0.9rem;
   }
   
-  .custom-period {
-    width: 100%;
+  /* Cards em 2 colunas no celular (Compacto e elegante) */
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
   }
   
-  .custom-period input {
-    flex: 1;
+  .metric-card {
+    padding: 10px !important;
+    min-height: 82px !important;
+    border-radius: 12px !important;
+  }
+  
+  .metric-card strong {
+    font-size: 1.15rem !important;
+    margin-top: 5px !important;
+  }
+  
+  .metric-card span {
+    font-size: 0.65rem !important;
+  }
+  
+  .metric-card small {
+    display: none !important; /* Oculta descrições para economizar espaço vertical */
+  }
+  
+  /* Respostas rápidas */
+  .quick-answers {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+  }
+  
+  .quick-answers div {
+    padding: 8px 10px !important;
+    border-radius: 10px !important;
+  }
+  
+  .quick-answers strong {
+    font-size: 1rem !important;
+    margin-top: 4px !important;
+  }
+  
+  /* Formulário de lançamentos em 2 colunas */
+  .entry-form {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  
+  .entry-form label:nth-child(2) { /* Input de Data */
+    grid-column: span 2 !important;
+  }
+  
+  .full-span {
+    grid-column: span 2 !important;
+  }
+  
+  .form-preview {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  /* Ajuste do Calendário */
+  .calendar-grid {
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 4px !important;
+  }
+  
+  .calendar-weekday {
+    display: none !important;
+  }
+  
+  .calendar-day {
+    min-height: 52px !important;
+    border-radius: 8px !important;
+    padding: 4px !important;
+    text-align: center;
+  }
+  
+  .calendar-day .date {
+    font-size: 0.75rem !important;
+    justify-content: center !important;
+    margin-bottom: 2px !important;
+  }
+  
+  .calendar-day small {
+    display: none !important; /* Oculta o texto no calendário do celular */
+  }
+  
+  .calendar-day .day-status {
+    width: 6px !important;
+    height: 6px !important;
+    margin: 2px auto 0 auto !important;
+  }
+  
+  .dialog-card {
+    padding: 16px !important;
   }
 }
 
 @media (max-width: 560px) {
-  .main { padding-left: 12px; padding-right: 12px; }
-  .cards-grid, .quick-answers, .entry-form, .settings-form, .form-preview, .calculator-grid { grid-template-columns: 1fr; }
-  .calendar-grid { grid-template-columns: 1fr; }
-  .calendar-weekday { display: none; }
+  .main { padding-left: 10px; padding-right: 10px; }
+  .cards-grid, .quick-answers, .entry-form, .settings-form, .form-preview, .calculator-grid { grid-template-columns: repeat(2, 1fr); }
+  .calendar-grid { grid-template-columns: repeat(7, 1fr); }
 }
