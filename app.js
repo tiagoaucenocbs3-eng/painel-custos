@@ -15,15 +15,18 @@
     currentView: 'dashboard',
     tableSort: { key: 'date', direction: 'desc' },
     mainSeriesVisibility: { revenue: true, adSpend: true, realCost: true, profit: true },
+    cooudStats: null,
   };
 
   const formatters = {
     money: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }),
+    eur: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'EUR' }),
     number: new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }),
     decimal: new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
   };
 
   function fmtMoney(value) { return formatters.money.format(Number(value) || 0); }
+  function fmtEur(value) { return formatters.eur.format(Number(value) || 0); }
   function fmtPercent(value) { return `${formatters.decimal.format(Number(value) || 0)}%`; }
   function fmtX(value) { return `${formatters.decimal.format(Number(value) || 0)}x`; }
   function fmtDate(iso) {
@@ -57,7 +60,28 @@
   }
 
   function entriesInCurrentPeriod() {
-    return calc.filterEntriesByPeriod(state.entries, state.currentRange).map(calc.calculateEntryMetrics);
+    const rawEntries = calc.filterEntriesByPeriod(state.entries, state.currentRange);
+    const todayISO = calc.toISODate(new Date());
+
+    const mapped = rawEntries.map(entry => {
+      if (entry.date === todayISO && state.cooudStats && state.cooudStats.summary) {
+        // Obter taxa do Euro em Reais (com fallback de R$ 6,10)
+        const rate = exchangeRates.EUR || 6.10;
+        
+        // Faturamento líquido convertido para Reais (BRL)
+        const cooudRevenueBRL = Math.round((state.cooudStats.summary.netRevenue * rate) * 100) / 100;
+        const cooudSales = state.cooudStats.summary.approvedOrders;
+
+        return {
+          ...entry,
+          sales: cooudSales,
+          revenue: cooudRevenueBRL
+        };
+      }
+      return entry;
+    });
+
+    return mapped.map(calc.calculateEntryMetrics);
   }
 
   function setView(viewName) {
@@ -838,11 +862,11 @@
 
   function renderCooudView(data) {
     const summary = data.summary;
-    if ($('#cooudGrossRevenue')) $('#cooudGrossRevenue').textContent = fmtMoney(summary.grossRevenue);
-    if ($('#cooudNetRevenue')) $('#cooudNetRevenue').textContent = fmtMoney(summary.netRevenue);
+    if ($('#cooudGrossRevenue')) $('#cooudGrossRevenue').textContent = fmtEur(summary.grossRevenue);
+    if ($('#cooudNetRevenue')) $('#cooudNetRevenue').textContent = fmtEur(summary.netRevenue);
     if ($('#cooudApprovedOrders')) $('#cooudApprovedOrders').textContent = summary.approvedOrders;
     if ($('#cooudApprovalRate')) $('#cooudApprovalRate').textContent = `${summary.approvalRate}%`;
-    if ($('#cooudRefundAmount')) $('#cooudRefundAmount').textContent = `${fmtMoney(summary.refundAmount)} (${summary.refundCount})`;
+    if ($('#cooudRefundAmount')) $('#cooudRefundAmount').textContent = `${fmtEur(summary.refundAmount)} (${summary.refundCount})`;
 
     const tbody = $('#cooudTransactionsBody');
     if (!tbody) return;
@@ -850,7 +874,7 @@
     tbody.innerHTML = '';
 
     if (!data.transactions || data.transactions.length === 0) {
-      tbody.innerHTML = `
+       tbody.innerHTML = `
         <tr>
           <td colspan="5" style="text-align: center; color: var(--muted); padding: 20px;">Nenhuma transação recebida no período. Configure o Webhook acima na Cooud para começar.</td>
         </tr>`;
@@ -874,8 +898,8 @@
       row.innerHTML = `
         <td>${tx.id}</td>
         <td>${fmtDate(tx.date)}</td>
-        <td>${fmtMoney(tx.amount)}</td>
-        <td>${fmtMoney(tx.net_amount)}</td>
+        <td>${fmtEur(tx.amount)}</td>
+        <td>${fmtEur(tx.net_amount)}</td>
         <td>${statusBadge}</td>
       `;
       tbody.appendChild(row);
@@ -918,6 +942,27 @@
     }
   }
 
+  async function loadCooudToday() {
+    try {
+      const todayISO = calc.toISODate(new Date());
+      const password = localStorage.getItem('painelOperacao.password.v1') || '';
+      const res = await fetch(`/api/cooud-stats?startDate=${todayISO}&endDate=${todayISO}`, {
+        headers: {
+          'Authorization': password
+        }
+      });
+
+      if (res.ok) {
+        state.cooudStats = await res.json();
+        if (state.currentView === 'dashboard') {
+          render();
+        }
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar dados hoje da Cooud para o Dashboard:', err);
+    }
+  }
+
   function startApp() {
     const todayISO = calc.toISODate(new Date());
     $('#customStart').value = todayISO;
@@ -929,6 +974,13 @@
     clearForm(todayISO);
     attachEvents();
     render();
+
+    // Carregar dados da Cooud para o Dashboard em segundo plano
+    loadCooudToday();
+    // Atualizar os dados da Cooud a cada 60 segundos
+    setInterval(loadCooudToday, 60000);
+    // Buscar taxas de câmbio em segundo plano no início
+    fetchExchangeRates();
   }
 
   async function init() {
