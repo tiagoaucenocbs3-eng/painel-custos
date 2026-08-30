@@ -61,11 +61,21 @@ module.exports = async (req, res) => {
     const totalOrders = approvedOrders + refusedOrders;
     const approvalRate = totalOrders > 0 ? (approvedOrders / totalOrders) * 100 : 0;
 
+    // 2. Buscar lançamentos recentes (entries)
+    const entriesRes = await fetch(`${SUPABASE_URL}/rest/v1/entries?select=*&order=date.desc&limit=5`, {
+      headers
+    });
+    if (!entriesRes.ok) {
+      throw new Error(`Erro ao buscar lançamentos: ${await entriesRes.text()}`);
+    }
+    const entries = await entriesRes.json();
+
     return res.status(200).json({
       success: true,
       queryUrl: url,
       eventsCount: events.length,
       events,
+      entries,
       summary: {
         grossRevenue,
         netRevenue,
