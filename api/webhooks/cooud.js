@@ -162,74 +162,9 @@ module.exports = async (req, res) => {
       throw new Error(`Erro ao salvar evento no Supabase: ${await saveEventResponse.text()}`);
     }
 
-    // 9. Se o evento atual for aprovado, incrementamos a tabela principal de lançamentos (entries)
-    if (status === 'approved') {
-      // Buscar lançamento atual para incrementar de forma relativa
-      const fetchEntryResponse = await fetch(`${SUPABASE_URL}/rest/v1/entries?date=eq.${date}&select=*`, {
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-        }
-      });
-
-      if (!fetchEntryResponse.ok) {
-        throw new Error(`Erro ao buscar lançamento do dia: ${await fetchEntryResponse.text()}`);
-      }
-
-      const entries = await fetchEntryResponse.json();
-
-      if (entries.length > 0) {
-        // Registro do dia existe, faz o incremento das vendas e faturamento sem sobrescrever tudo
-        const entry = entries[0];
-        const newSales = (entry.sales || 0) + 1;
-        const newRevenue = Math.round(((entry.revenue || 0) + amount) * 100) / 100;
-
-        const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/entries?id=eq.${entry.id}`, {
-          method: 'PATCH',
-          headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            sales: newSales,
-            revenue: newRevenue,
-            "updatedAt": new Date().toISOString()
-          })
-        });
-
-        if (!updateResponse.ok) {
-          throw new Error(`Erro ao atualizar lançamento principal: ${await updateResponse.text()}`);
-        }
-      } else {
-        // Registro do dia não existe, cria um novo lançamento inicial
-        const uuid = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
-        const createResponse = await fetch(`${SUPABASE_URL}/rest/v1/entries`, {
-          method: 'POST',
-          headers: supabaseHeaders,
-          body: JSON.stringify({
-            id: uuid,
-            date,
-            adSpend: 0,
-            iofPercent: 3.5,
-            sales: 1,
-            revenue: amount,
-            notes: 'Criado via Webhook Cooud',
-            sample: false,
-            "createdAt": new Date().toISOString(),
-            "updatedAt": new Date().toISOString()
-          })
-        });
-
-        if (!createResponse.ok) {
-          throw new Error(`Erro ao criar lançamento principal: ${await createResponse.text()}`);
-        }
-      }
-    }
-
     return res.status(200).json({ 
       success: true, 
-      message: 'Webhook processado e lançamento atualizado com sucesso.',
+      message: 'Webhook processado e evento salvo com sucesso.',
       data: { date, status, amount }
     });
 

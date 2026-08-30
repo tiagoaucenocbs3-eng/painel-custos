@@ -786,8 +786,8 @@
   // --- Integração Cooud Checkout ---
   async function fetchCooudStats() {
     const { start, end } = state.currentRange;
-    const startStr = calc.toISODate(start);
-    const endStr = calc.toISODate(end);
+    const startStr = typeof start === 'string' ? start : calc.toISODate(start);
+    const endStr = typeof end === 'string' ? end : calc.toISODate(end);
 
     const grossEl = $('#cooudGrossRevenue');
     const netEl = $('#cooudNetRevenue');

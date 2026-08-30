@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Painel de Operação</title>
-  <link rel="stylesheet" href="style.css?v=1.0.4">
+  <link rel="stylesheet" href="style.css?v=1.0.5">
   
   <!-- PWA e iOS shortcut config -->
   <link rel="manifest" href="manifest.json">
@@ -294,6 +294,7 @@
               <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9rem; color: var(--muted);">URL DO WEBHOOK PARA COPIAR:</label>
               <div style="display: flex; gap: 10px; align-items: center;">
                 <input type="text" id="cooudWebhookUrl" readonly style="flex: 1; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9rem; text-align: left;" value="">
+                <script>document.getElementById('cooudWebhookUrl').value = window.location.origin + '/api/webhooks/cooud';</script>
                 <button id="copyWebhookUrlBtn" class="primary" style="padding: 10px 15px; border-radius: 8px; font-size: 0.9rem; white-space: nowrap;">Copiar Link</button>
               </div>
               <p style="margin-top: 12px; font-size: 0.8rem; color: var(--muted); line-height: 1.4;">
@@ -417,9 +418,9 @@
 
   <div id="toast" class="toast" aria-live="polite"></div>
 
-  <script src="calculations.js?v=1.0.4"></script>
-  <script src="storage.js?v=1.0.4"></script>
-  <script src="charts.js?v=1.0.4"></script>
-  <script src="app.js?v=1.0.4"></script>
+  <script src="calculations.js?v=1.0.5"></script>
+  <script src="storage.js?v=1.0.5"></script>
+  <script src="charts.js?v=1.0.5"></script>
+  <script src="app.js?v=1.0.5"></script>
 </body>
 </html>
