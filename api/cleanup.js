@@ -41,7 +41,17 @@ module.exports = async (req, res) => {
       throw new Error(`Erro ao deletar eventos de teste: ${await deleteResponse.text()}`);
     }
 
-    // 3. Restaurar o dia 30/08/2026 no entries para os dados reais
+    // 3. Deletar a entrada duplicada específica (ID do backup original)
+    const deleteEntryResponse = await fetch(`${SUPABASE_URL}/rest/v1/entries?id=eq.0a950706-04a2-4302-b3c6-bc992c5977e8`, {
+      method: 'DELETE',
+      headers
+    });
+
+    if (!deleteEntryResponse.ok) {
+      throw new Error(`Erro ao deletar entrada duplicada: ${await deleteEntryResponse.text()}`);
+    }
+
+    // 4. Restaurar o dia 30/08/2026 no entries para os dados reais
     const restoreResponse = await fetch(`${SUPABASE_URL}/rest/v1/entries?date=eq.2026-08-30`, {
       method: 'PATCH',
       headers,

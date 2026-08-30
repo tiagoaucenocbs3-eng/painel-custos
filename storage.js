@@ -311,6 +311,19 @@
     localStorage.setItem(MIGRATED_KEY, 'true'); // Marca migrado como feito
   }
 
+  function deduplicateEntriesByDate(entries) {
+    const map = new Map();
+    const sorted = [...entries].sort((a, b) => {
+      const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return aTime - bTime;
+    });
+    for (const entry of sorted) {
+      map.set(entry.date, entry);
+    }
+    return Array.from(map.values());
+  }
+
   let isSyncing = false;
 
   async function syncWithCloud() {
@@ -428,9 +441,11 @@
             }
           }
 
-          if (dataChanged) {
-            merged.sort((a, b) => a.date.localeCompare(b.date));
-            writeJSON(ENTRY_KEY, merged.map(normalizeEntry));
+          const deduplicated = deduplicateEntriesByDate(merged);
+          if (deduplicated.length !== localEntries.length || dataChanged) {
+            deduplicated.sort((a, b) => a.date.localeCompare(b.date));
+            writeJSON(ENTRY_KEY, deduplicated.map(normalizeEntry));
+            dataChanged = true;
           }
         }
       } catch (err) {
