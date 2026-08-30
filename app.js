@@ -73,12 +73,16 @@
         const cooudSales = state.cooudStats.summary.approvedOrders;
 
         if (todayISO === '2026-08-30') {
-          // Hoje é o dia da transição (15 vendas manuais + vendas do webhook de hoje)
-          // Isso garante que novas vendas automáticas hoje somem em cima das 20 vendas atuais!
+          // Hoje é o dia da transição. Travamos o ponto de partida exato em 20 vendas e R$ 4.166,14.
+          // Qualquer nova venda recebida a partir do momento atual (acima de 5 pedidos aprovados e 163.47 EUR) é convertida e somada.
+          const extraSales = Math.max(0, cooudSales - 5);
+          const extraRevenueEUR = extraSales > 0 ? Math.max(0, state.cooudStats.summary.netRevenue - 163.47) : 0;
+          const extraRevenueBRL = Math.round((extraRevenueEUR * rate) * 100) / 100;
+
           return {
             ...entry,
-            sales: 15 + cooudSales,
-            revenue: Math.round((3184.27 + cooudRevenueBRL) * 100) / 100
+            sales: 20 + extraSales,
+            revenue: Math.round((4166.14 + extraRevenueBRL) * 100) / 100
           };
         } else {
           // A partir de amanhã, o webhook é 100% automático (sem baseline)
