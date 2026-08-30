@@ -808,7 +808,7 @@
     }
 
     try {
-      const password = localStorage.getItem('painelOperacao.authToken') || '';
+      const password = localStorage.getItem('painelOperacao.password.v1') || '';
       const res = await fetch(`/api/cooud-stats?startDate=${startStr}&endDate=${endStr}`, {
         headers: {
           'Authorization': password
