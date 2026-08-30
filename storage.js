@@ -115,12 +115,12 @@
         "date": "2026-08-30",
         "adSpend": 1021.01,
         "iofPercent": 3.5,
-        "sales": 10,
-        "revenue": 2018.14,
+        "sales": 14,
+        "revenue": 2982.56,
         "notes": "",
         "sample": false,
-        "createdAt": "2026-08-30T13:31:06.645Z",
-        "updatedAt": "2026-08-30T13:47:22.818Z"
+        "createdAt": "2026-08-30T19:32:59.330Z",
+        "updatedAt": "2026-08-30T19:32:59.330Z"
       }
     ],
     settings: {
@@ -293,7 +293,7 @@
   }
 
   // Forçar aplicação do backup real do usuário na primeira execução do novo código
-  const BACKUP_APPLIED_KEY = 'painelOperacao.backupApplied.v1';
+  const BACKUP_APPLIED_KEY = 'painelOperacao.backupApplied.v2';
 
   function forceApplyUserBackup() {
     if (localStorage.getItem(BACKUP_APPLIED_KEY)) return;

@@ -657,10 +657,7 @@
     $('#wipeAllBtn').onclick = wipeAllData;
     $('#exportCsvBtn').onclick = exportCSV;
     $('#reportsCsvBtn').onclick = exportCSV;
-    $('#exportBackupBtn').onclick = exportBackup;
-    $('#reportsBackupBtn').onclick = exportBackup;
-    $('#importBackupBtn').onclick = () => $('#backupFileInput').click();
-    $('#backupFileInput').onchange = (event) => importBackupFile(event.target.files[0]);
+    if ($('#logoutBtn')) $('#logoutBtn').onclick = () => store.logout();
     $('#calendarMonth').onchange = renderCalendar;
     $('#closeDialog').onclick = () => $('#detailsDialog').close();
     $$('#entriesTable th[data-sort]').forEach((th) => th.onclick = () => sortBy(th.dataset.sort));
