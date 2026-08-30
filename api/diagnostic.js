@@ -21,31 +21,64 @@ module.exports = async (req, res) => {
       'Content-Type': 'application/json'
     };
 
-    // 1. Buscar transações mais recentes (cooud_events)
-    const eventsRes = await fetch(`${SUPABASE_URL}/rest/v1/cooud_events?select=*&order=createdAt.desc&limit=15`, {
-      headers
-    });
-    if (!eventsRes.ok) {
-      throw new Error(`Erro ao buscar eventos: ${await eventsRes.text()}`);
-    }
-    const events = await eventsRes.json();
+    const startDate = '2026-08-30';
+    const endDate = '2026-08-30';
 
-    // 2. Buscar lançamentos recentes (entries)
-    const entriesRes = await fetch(`${SUPABASE_URL}/rest/v1/entries?select=*&order=date.desc&limit=5`, {
-      headers
-    });
-    if (!entriesRes.ok) {
-      throw new Error(`Erro ao buscar lançamentos: ${await entriesRes.text()}`);
+    // 1. Simular a consulta do cooud-stats
+    const url = `${SUPABASE_URL}/rest/v1/cooud_events?date=gte.${startDate}&date=lte.${endDate}&order=date.desc,createdAt.desc`;
+    const response = await fetch(url, { headers });
+
+    if (!response.ok) {
+      throw new Error(`Erro ao buscar eventos: ${await response.text()}`);
     }
-    const entries = await entriesRes.json();
+
+    const events = await response.json();
+
+    // Calcular estatísticas
+    let grossRevenue = 0;
+    let netRevenue = 0;
+    let approvedOrders = 0;
+    let refusedOrders = 0;
+    let refundCount = 0;
+    let refundAmount = 0;
+
+    events.forEach(evt => {
+      const amt = parseFloat(evt.amount || 0);
+      const netAmt = parseFloat(evt.net_amount || 0);
+
+      if (evt.status === 'approved') {
+        approvedOrders++;
+        grossRevenue += amt;
+        netRevenue += netAmt;
+      } else if (evt.status === 'refused') {
+        refusedOrders++;
+      } else if (evt.status === 'refunded') {
+        refundCount++;
+        refundAmount += amt;
+      }
+    });
+
+    const totalOrders = approvedOrders + refusedOrders;
+    const approvalRate = totalOrders > 0 ? (approvedOrders / totalOrders) * 100 : 0;
 
     return res.status(200).json({
       success: true,
+      queryUrl: url,
+      eventsCount: events.length,
       events,
-      entries
+      summary: {
+        grossRevenue,
+        netRevenue,
+        approvedOrders,
+        refusedOrders,
+        totalOrders,
+        approvalRate,
+        refundCount,
+        refundAmount
+      }
     });
 
   } catch (error) {
-    return res.status(500).json({ error: 'Erro interno no diagnóstico.', details: error.message });
+    return res.status(500).json({ error: 'Erro no teste.', details: error.message });
   }
 };
