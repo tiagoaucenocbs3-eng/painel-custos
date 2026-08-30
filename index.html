@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel de Operação</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">PO</div>
+        <div>
+          <strong>PAINEL DE OPERAÇÃO</strong>
+          <span>Controle financeiro local</span>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+        <button class="nav-btn" data-view="entries">Lançamentos</button>
+        <button class="nav-btn" data-view="calendar">Calendário</button>
+        <button class="nav-btn" data-view="reports">Relatórios</button>
+        <button class="nav-btn" data-view="goals">Metas</button>
+        <button class="nav-btn" data-view="settings">Configurações</button>
+      </nav>
+      <div class="sidebar-footer">
+        <button id="exportBackupBtn" class="ghost full">Exportar backup JSON</button>
+        <button id="importBackupBtn" class="ghost full">Importar backup</button>
+        <input type="file" id="backupFileInput" accept="application/json,.json" hidden>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 id="viewTitle">Dashboard</h1>
+          <p id="todayLabel">--</p>
+        </div>
+        <div class="period-controls">
+          <label>
+            Período
+            <select id="periodSelect">
+              <option value="today">Hoje</option>
+              <option value="yesterday">Ontem</option>
+              <option value="last7" selected>Últimos 7 dias</option>
+              <option value="last30">Últimos 30 dias</option>
+              <option value="thisMonth">Este mês</option>
+              <option value="lastMonth">Mês passado</option>
+              <option value="custom">Período personalizado</option>
+            </select>
+          </label>
+          <div id="customPeriod" class="custom-period hidden">
+            <input type="date" id="customStart">
+            <span>até</span>
+            <input type="date" id="customEnd">
+          </div>
+        </div>
+      </header>
+
+      <section id="dashboard" class="view active">
+        <div id="mainCards" class="cards-grid"></div>
+
+        <div class="panel quick-answers">
+          <div>
+            <span>Quanto vendi?</span>
+            <strong id="qaRevenue">R$ 0,00</strong>
+          </div>
+          <div>
+            <span>Quanto gastei?</span>
+            <strong id="qaSpend">R$ 0,00</strong>
+          </div>
+          <div>
+            <span>Quanto sobrou?</span>
+            <strong id="qaProfit">R$ 0,00</strong>
+          </div>
+          <div>
+            <span>ROAS / ROI</span>
+            <strong id="qaRoasRoi">0,00x / 0,00%</strong>
+          </div>
+          <div>
+            <span>CPA</span>
+            <strong id="qaCpa">R$ 0,00</strong>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Evolução diária</h2>
+                <p>Faturamento, anúncios, custo real e lucro</p>
+              </div>
+            </div>
+            <div id="mainLegend" class="legend"></div>
+            <canvas id="mainChart" height="280"></canvas>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>ROAS por dia</h2>
+                <p>Linha tracejada = meta configurada</p>
+              </div>
+            </div>
+            <canvas id="roasChart" height="280"></canvas>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><div><h2>ROI diário</h2><p>Positivo e negativo destacados</p></div></div>
+            <canvas id="roiChart" height="260"></canvas>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><div><h2>Vendas por dia</h2><p>Volume diário em barras</p></div></div>
+            <canvas id="salesChart" height="260"></canvas>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><div><h2>CPA diário</h2><p>Evolução do custo por venda</p></div></div>
+            <canvas id="cpaChart" height="260"></canvas>
+          </section>
+          <section class="panel insights-panel">
+            <div class="panel-head"><div><h2>Insights</h2><p>Regras automáticas sem API</p></div></div>
+            <ul id="insightsList" class="insights-list"></ul>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div><h2>Comparação de períodos</h2><p>Entenda se a operação melhorou ou piorou</p></div>
+            <select id="comparisonSelect">
+              <option value="todayVsYesterday">Hoje x ontem</option>
+              <option value="last7VsPrevious7" selected>Últimos 7 dias x 7 dias anteriores</option>
+              <option value="thisMonthVsLastMonth">Este mês x mês anterior</option>
+            </select>
+          </div>
+          <div id="comparisonGrid" class="comparison-grid"></div>
+        </section>
+
+        <div class="grid-2">
+          <section class="panel">
+            <div class="panel-head"><div><h2>Melhor e pior dia</h2><p>Cards automáticos do período selecionado</p></div></div>
+            <div id="bestWorstGrid" class="mini-card-grid"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><div><h2>Metas e projeção do mês</h2><p>Baseado na média diária do mês atual</p></div></div>
+            <div id="goalProgress" class="goal-progress-list"></div>
+            <div id="monthProjection" class="projection-grid"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="entries" class="view">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Lançamento diário</h2>
+              <p>Informe os dados do dia. As métricas são calculadas automaticamente.</p>
+            </div>
+            <button id="clearFormBtn" class="ghost">Novo lançamento</button>
+          </div>
+          <form id="entryForm" class="entry-form">
+            <input type="hidden" id="entryId">
+            <label>Data <input type="date" id="entryDate" required></label>
+            <label>Gasto com anúncios <input type="number" id="adSpend" step="0.01" min="0" placeholder="1250,00" required></label>
+            <label>Percentual de IOF <input type="number" id="iofPercent" step="0.01" min="0" placeholder="3,5" required></label>
+            <label>Quantidade de vendas <input type="number" id="sales" step="1" min="0" placeholder="31" required></label>
+            <label>Faturamento total <input type="number" id="revenue" step="0.01" min="0" placeholder="3720,00" required></label>
+            <label class="full-span">Observações <textarea id="notes" rows="3" placeholder="Campanhas novas começaram a vender depois das 14h."></textarea></label>
+            <div class="form-preview full-span" id="formPreview"></div>
+            <div class="form-actions full-span">
+              <button type="submit" class="primary">Salvar lançamento</button>
+              <button type="button" id="seedSampleBtn" class="ghost">Gerar dados de exemplo</button>
+              <button type="button" id="deleteSampleBtn" class="danger-outline">Apagar dados de exemplo</button>
+            </div>
+          </form>
+        </section>
+        <section class="panel">
+          <div class="panel-head">
+            <div><h2>Tabela de desempenho diário</h2><p>Clique nos cabeçalhos para ordenar</p></div>
+            <button id="exportCsvBtn" class="ghost">Exportar CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="entriesTable">
+              <thead>
+                <tr>
+                  <th data-sort="date">Data</th>
+                  <th>Gasto anúncios</th>
+                  <th>IOF</th>
+                  <th>Custo real</th>
+                  <th data-sort="sales">Vendas</th>
+                  <th data-sort="revenue">Faturamento</th>
+                  <th data-sort="profit">Lucro</th>
+                  <th data-sort="roas">ROAS</th>
+                  <th data-sort="roi">ROI</th>
+                  <th data-sort="cpa">CPA</th>
+                  <th>Ticket médio</th>
+                  <th>Margem</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="calendar" class="view">
+        <section class="panel">
+          <div class="panel-head">
+            <div><h2>Calendário de performance</h2><p>Clique em um dia para ver detalhes</p></div>
+            <input type="month" id="calendarMonth">
+          </div>
+          <div id="calendarGrid" class="calendar-grid"></div>
+        </section>
+      </section>
+
+      <section id="reports" class="view">
+        <section class="panel">
+          <div class="panel-head">
+            <div><h2>Resumo do período</h2><p>Recalculado conforme o filtro superior</p></div>
+            <div class="inline-actions">
+              <button id="reportsCsvBtn" class="ghost">Exportar CSV</button>
+              <button id="reportsBackupBtn" class="ghost">Exportar backup</button>
+            </div>
+          </div>
+          <div id="periodSummary" class="summary-list"></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><div><h2>Tabela do relatório</h2><p>Dados do período selecionado</p></div></div>
+          <div class="table-wrap"><table id="reportsTable"><thead></thead><tbody></tbody></table></div>
+        </section>
+      </section>
+
+      <section id="goals" class="view">
+        <section class="panel">
+          <div class="panel-head"><div><h2>Metas da operação</h2><p>Configure metas e acompanhe progresso</p></div></div>
+          <form id="goalsForm" class="settings-form"></form>
+        </section>
+      </section>
+
+      <section id="settings" class="view">
+        <section class="panel">
+          <div class="panel-head"><div><h2>Configurações</h2><p>Parâmetros globais, limites visuais, moeda e backup</p></div></div>
+          <form id="settingsForm" class="settings-form"></form>
+          <div class="danger-zone">
+            <button id="settingsDeleteSampleBtn" class="danger-outline">Apagar dados de exemplo</button>
+            <button id="wipeAllBtn" class="danger-outline">Apagar todos os dados</button>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="detailsDialog">
+    <div class="dialog-card">
+      <button id="closeDialog" class="dialog-close">×</button>
+      <div id="dialogContent"></div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <script src="calculations.js"></script>
+  <script src="storage.js"></script>
+  <script src="charts.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

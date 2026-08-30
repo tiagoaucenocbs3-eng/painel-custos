@@ -1,0 +1,9 @@
+# Backup and temp files
+bkp/
+*.bak
+.DS_Store
+Thumbs.db
+
+# Node dependencies (if any)
+node_modules/
+.vercel/
