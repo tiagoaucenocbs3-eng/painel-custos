@@ -41,8 +41,8 @@ module.exports = async (req, res) => {
       throw new Error(`Erro ao deletar eventos de teste: ${await deleteResponse.text()}`);
     }
 
-    // 3. Deletar a entrada duplicada específica (ID do backup original)
-    const deleteEntryResponse = await fetch(`${SUPABASE_URL}/rest/v1/entries?id=eq.0a950706-04a2-4302-b3c6-bc992c5977e8`, {
+    // 3. Deletar a entrada duplicada específica (ID fbd06563-65b3-45e4-a6cb-735d4ce741a5)
+    const deleteEntryResponse = await fetch(`${SUPABASE_URL}/rest/v1/entries?id=eq.fbd06563-65b3-45e4-a6cb-735d4ce741a5`, {
       method: 'DELETE',
       headers
     });
