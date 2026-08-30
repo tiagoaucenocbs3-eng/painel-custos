@@ -35,8 +35,10 @@ module.exports = async (req, res) => {
     // Logar payload para depuração na Vercel (se necessário)
     console.log('[Webhook Cooud] Payload recebido:', JSON.stringify(body));
 
+    const data = body.data || {};
+
     // 2. Extrair e normalizar o ID da transação
-    const id = body.id || body.transaction_id || body.order_id || body.id_transacao || body.reference ||
+    const id = body.id || data.id || body.transaction_id || body.order_id || body.id_transacao || body.reference ||
                (body.order && body.order.id) || (body.transaction && body.transaction.id);
 
     if (!id) {
@@ -44,7 +46,7 @@ module.exports = async (req, res) => {
     }
 
     // 3. Extrair e normalizar o Status
-    const rawStatus = (body.status || body.order_status || body.transaction_status || body.event || 
+    const rawStatus = (data.status || body.status || body.order_status || body.transaction_status || body.event || body.type ||
                       (body.order && body.order.status) || (body.transaction && body.transaction.status) || '').toLowerCase();
     
     let status = 'pending';
@@ -60,26 +62,34 @@ module.exports = async (req, res) => {
     }
 
     // 4. Extrair e normalizar o Valor Bruto (Amount)
-    const rawAmount = body.amount || body.price || body.value || body.price_cents || body.total || 
+    const rawAmount = data.total_amount || data.amount || data.price || data.value || body.amount || body.price || body.value || body.price_cents || body.total || 
                       body.valor || body.valor_bruto || (body.order && body.order.amount) || 
                       (body.order && body.order.price) || (body.transaction && body.transaction.amount) || 0;
 
     let amount = parseFloat(rawAmount);
-    // Tratar se o checkout enviar valores em centavos (apenas se a chave de origem contiver 'cents')
-    const hasCentsInKey = Object.keys(body).some(key => key.toLowerCase().includes('cents') && parseFloat(body[key]) === amount);
-    if (hasCentsInKey) {
+    // Se vier do data da Cooud (ex: total_amount), dividimos por 100
+    if (data.total_amount !== undefined) {
       amount = amount / 100;
+    } else {
+      const hasCentsInKey = Object.keys(body).some(key => key.toLowerCase().includes('cents') && parseFloat(body[key]) === amount);
+      if (hasCentsInKey) {
+        amount = amount / 100;
+      }
     }
 
     // 5. Extrair e normalizar o Valor Líquido (Net Amount)
-    const rawNetAmount = body.net_amount || body.net_value || body.commission || body.valor_liquido || 
+    const rawNetAmount = data.net_amount || data.net_value || data.commission || body.net_amount || body.net_value || body.commission || body.valor_liquido || 
                          body.net_cents || body.net || (body.order && body.order.net_amount) || null;
     
     let net_amount = rawNetAmount !== null ? parseFloat(rawNetAmount) : null;
     if (net_amount !== null) {
-      const hasCentsInNetKey = Object.keys(body).some(key => key.toLowerCase().includes('cents') && parseFloat(body[key]) === net_amount);
-      if (hasCentsInNetKey) {
+      if (data.net_amount !== undefined) {
         net_amount = net_amount / 100;
+      } else {
+        const hasCentsInNetKey = Object.keys(body).some(key => key.toLowerCase().includes('cents') && parseFloat(body[key]) === net_amount);
+        if (hasCentsInNetKey) {
+          net_amount = net_amount / 100;
+        }
       }
     }
     // Se não enviado pela API, assume uma comissão padrão de 93% (7% de taxa da plataforma)
@@ -88,7 +98,7 @@ module.exports = async (req, res) => {
     }
 
     // 6. Extrair e normalizar a Data (formato YYYY-MM-DD no timezone de Brasília)
-    const rawDate = body.date || body.approved_date || body.created_at || body.data_aprovacao || 
+    const rawDate = data.created_at || data.approved_at || body.date || body.approved_date || body.created_at || body.data_aprovacao || 
                     body.payment_date || (body.order && body.order.created_at) || null;
     
     let date = '';
