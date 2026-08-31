@@ -1033,9 +1033,7 @@
 
       if (res.ok) {
         state.cooudStats = await res.json();
-        if (state.currentView === 'dashboard') {
-          render();
-        }
+        render();
       }
     } catch (err) {
       console.warn('Erro ao carregar dados hoje da Cooud para o Dashboard:', err);
