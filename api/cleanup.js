@@ -67,11 +67,11 @@ module.exports = async (req, res) => {
       });
     }
 
-    // 3.6 Atualizar o status do reembolso de hoje para refletir refunded_rate:6.0064
+    // 3.6 Atualizar o status do reembolso de hoje para refletir refunded_rate:6.01658
     await fetch(`${SUPABASE_URL}/rest/v1/cooud_events?id=eq.01M1AJEY4NE1MSHWG3PCCGW3XW`, {
       method: 'PATCH',
       headers,
-      body: JSON.stringify({ status: 'refunded_rate:6.0064' })
+      body: JSON.stringify({ status: 'refunded_rate:6.01658' })
     });
 
     // 4. Restaurar o dia 30/08/2026 no entries para os dados reais
