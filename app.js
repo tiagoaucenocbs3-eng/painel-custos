@@ -143,8 +143,8 @@
           // A partir de amanhã, o webhook é 100% automático (sem baseline)
           return {
             ...entry,
-            sales: cooudSales,
-            revenue: cooudRevenueBRL
+            sales: entry.id === 'virtual-today' || entry.sales === 0 ? cooudSales : entry.sales,
+            revenue: entry.id === 'virtual-today' || entry.revenue === 0 ? cooudRevenueBRL : entry.revenue
           };
         }
       }
