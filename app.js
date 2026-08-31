@@ -63,6 +63,24 @@
     const rawEntries = calc.filterEntriesByPeriod(state.entries, state.currentRange);
     const todayISO = calc.toISODate(new Date());
 
+    // Se hoje está dentro do período selecionado e não há lançamento manual criado para hoje
+    const isTodayInPeriod = state.currentRange && todayISO >= state.currentRange.start && todayISO <= state.currentRange.end;
+    const hasTodayEntry = rawEntries.some(e => e.date === todayISO);
+    
+    // Adicionar entrada virtual se tivermos dados da Cooud para hoje
+    if (isTodayInPeriod && !hasTodayEntry && state.cooudStats && state.cooudStats.transactions) {
+      rawEntries.push({
+        id: 'virtual-today',
+        date: todayISO,
+        adSpend: 0,
+        iofPercent: state.settings.defaultIof || 3.5,
+        sales: 0,
+        revenue: 0,
+        notes: 'Aguardando lançamento de gastos',
+        sample: false
+      });
+    }
+
     const mapped = rawEntries.map(entry => {
       if (entry.date === todayISO && state.cooudStats && state.cooudStats.transactions) {
         // Calcular faturamento em Reais somando cada transação pelo seu câmbio congelado
@@ -456,7 +474,8 @@
   }
 
   function fillForm(entry) {
-    $('#entryId').value = entry.id;
+    if (!entry) return;
+    $('#entryId').value = entry.id === 'virtual-today' ? '' : entry.id;
     $('#entryDate').value = entry.date;
     $('#adSpend').value = entry.adSpend;
     $('#iofPercent').value = entry.iofPercent;
@@ -516,6 +535,11 @@
   }
 
   function rowHTML(entry) {
+    const isVirtual = entry.id === 'virtual-today';
+    const actionsHTML = isVirtual
+      ? `<button class="action-btn primary-outline" data-action="edit" data-id="${entry.id}" style="border: 1px solid var(--accent); color: var(--accent); padding: 4px 8px; border-radius: 6px; font-size: 0.8rem;">Lançar Gastos</button>`
+      : `<button class="action-btn" data-action="edit" data-id="${entry.id}">Editar</button><button class="action-btn" data-action="duplicate" data-id="${entry.id}">Duplicar</button><button class="action-btn" data-action="delete" data-id="${entry.id}">Excluir</button>`;
+
     return `<tr>
       <td>${fmtDate(entry.date)}</td>
       <td>${fmtMoney(entry.adSpend)}</td>
@@ -529,14 +553,17 @@
       <td>${fmtMoney(entry.cpa)}</td>
       <td>${fmtMoney(entry.averageTicket)}</td>
       <td>${fmtPercent(entry.margin)}</td>
-      <td><div class="actions"><button class="action-btn" data-action="edit" data-id="${entry.id}">Editar</button><button class="action-btn" data-action="duplicate" data-id="${entry.id}">Duplicar</button><button class="action-btn" data-action="delete" data-id="${entry.id}">Excluir</button></div></td>
+      <td><div class="actions">${actionsHTML}</div></td>
     </tr>`;
   }
 
   function bindTableActions(table) {
     $$('button[data-action]', table).forEach((btn) => btn.onclick = () => {
       const id = btn.dataset.id;
-      if (btn.dataset.action === 'edit') fillForm(state.entries.find((item) => item.id === id));
+      if (btn.dataset.action === 'edit') {
+        const item = state.entries.find((item) => item.id === id) || entriesInCurrentPeriod().find((item) => item.id === id);
+        if (item) fillForm(item);
+      }
       if (btn.dataset.action === 'duplicate') duplicateEntry(id);
       if (btn.dataset.action === 'delete') deleteEntry(id);
     });
