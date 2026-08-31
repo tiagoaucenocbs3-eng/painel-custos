@@ -37,9 +37,9 @@ module.exports = async (req, res) => {
 
     const data = body.data || {};
 
-    // 2. Extrair e normalizar o ID da transação
-    const id = body.id || data.id || body.transaction_id || body.order_id || body.id_transacao || body.reference ||
-               (body.order && body.order.id) || (body.transaction && body.transaction.id);
+    // 2. Extrair e normalizar o ID da transação (priorizar ID da ordem/transação sobre o ID do evento de webhook)
+    const id = data.id || body.transaction_id || body.order_id || body.id_transacao || body.reference ||
+               (body.order && body.order.id) || (body.transaction && body.transaction.id) || body.id;
 
     if (!id) {
       return res.status(400).json({ error: 'ID de transação não encontrado no payload.' });
@@ -158,7 +158,7 @@ module.exports = async (req, res) => {
 
     const eventPayload = {
       id: String(id),
-      status: status === 'approved' ? `approved_rate:${rate}` : `pending_debug:${JSON.stringify(body)}`,
+      status: status === 'approved' ? `approved_rate:${rate}` : (status === 'refunded' ? `refunded_rate:${rate}` : `pending_debug:${JSON.stringify(body)}`),
       amount,
       net_amount,
       date,

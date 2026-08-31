@@ -83,6 +83,8 @@
 
         state.cooudStats.transactions.forEach(tx => {
           const isApproved = tx.status === 'approved' || tx.status.startsWith('approved_rate:');
+          const isRefunded = tx.status === 'refunded' || tx.status.startsWith('refunded_rate:');
+
           if (isApproved) {
             cooudSales++;
             const txRate = tx.status.includes('rate:') ? parseFloat(tx.status.split('rate:')[1]) : (exchangeRates.EUR || 6.10);
@@ -93,6 +95,17 @@
             if (entry.date === '2026-08-30' && !original5Ids.includes(tx.id)) {
               extraSales++;
               extraRevenueBRL += txBRL;
+            }
+          } else if (isRefunded) {
+            const txRate = tx.status.includes('rate:') ? parseFloat(tx.status.split('rate:')[1]) : (exchangeRates.EUR || 6.10);
+            const txBRL = tx.net_amount * txRate;
+            cooudSales--;
+            cooudRevenueBRL -= txBRL;
+
+            // Se for hoje, subtraímos do extra/total de hoje
+            if (entry.date === '2026-08-30') {
+              extraSales--;
+              extraRevenueBRL -= txBRL;
             }
           }
         });
@@ -928,7 +941,7 @@
         statusBadge = '<span class="status-badge badge-approved">Aprovado</span>';
       } else if (tx.status === 'refused') {
         statusBadge = '<span class="status-badge badge-refused">Recusado</span>';
-      } else if (tx.status === 'refunded') {
+      } else if (tx.status === 'refunded' || tx.status.startsWith('refunded_rate:')) {
         statusBadge = '<span class="status-badge badge-refunded">Reembolsado</span>';
       } else {
         statusBadge = `<span class="status-badge badge-pending">${tx.status}</span>`;

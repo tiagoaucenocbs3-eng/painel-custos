@@ -71,7 +71,7 @@ module.exports = async (req, res) => {
         netRevenue += netAmt;
       } else if (evt.status === 'refused') {
         refusedOrders++;
-      } else if (evt.status === 'refunded') {
+      } else if (evt.status === 'refunded' || evt.status.startsWith('refunded_rate:')) {
         refundCount++;
         refundAmount += amt;
       }
