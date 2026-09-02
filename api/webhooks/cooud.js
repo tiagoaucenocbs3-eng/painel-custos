@@ -175,6 +175,39 @@ module.exports = async (req, res) => {
       throw new Error(`Erro ao salvar evento no Supabase: ${await saveEventResponse.text()}`);
     }
 
+    // 9. Se for um reembolso, abater automaticamente da tabela entries no Supabase
+    if (status === 'refunded' && date) {
+      try {
+        const fetchEntryRes = await fetch(`${SUPABASE_URL}/rest/v1/entries?date=eq.${date}`, {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          }
+        });
+        if (fetchEntryRes.ok) {
+          const matchingEntries = await fetchEntryRes.json();
+          if (matchingEntries && matchingEntries.length > 0) {
+            const entry = matchingEntries[0];
+            const convertedRefundBRL = Math.round(net_amount * rate * 100) / 100;
+            const updatedSales = Math.max(0, (Number(entry.sales) || 0) - 1);
+            const updatedRevenue = Math.max(0, Math.round(((Number(entry.revenue) || 0) - convertedRefundBRL) * 100) / 100);
+
+            await fetch(`${SUPABASE_URL}/rest/v1/entries?id=eq.${entry.id}`, {
+              method: 'PATCH',
+              headers: supabaseHeaders,
+              body: JSON.stringify({
+                sales: updatedSales,
+                revenue: updatedRevenue,
+                updatedAt: new Date().toISOString()
+              })
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Erro ao abater reembolso da tabela entries:', err);
+      }
+    }
+
     return res.status(200).json({ 
       success: true, 
       message: 'Webhook processado e evento salvo com sucesso.',
