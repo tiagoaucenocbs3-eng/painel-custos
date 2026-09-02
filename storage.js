@@ -118,12 +118,12 @@
         "date": "2026-08-30",
         "adSpend": 1113.46,
         "iofPercent": 3.5,
-        "sales": 18,
-        "revenue": 3603.15,
+        "sales": 17,
+        "revenue": 3240.35,
         "notes": "",
         "sample": false,
         "createdAt": "2026-08-30T19:32:59.330Z",
-        "updatedAt": "2026-09-02T13:47:22.818Z"
+        "updatedAt": "2026-09-02T17:35:22.818Z"
       }
     ],
     settings: {

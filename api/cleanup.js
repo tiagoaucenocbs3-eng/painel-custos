@@ -38,13 +38,13 @@ module.exports = async (req, res) => {
       })
     });
 
-    // 3. Atualizar o dia 30/08/2026 no entries (descontando 2 reembolsos: R$ 362,80 + R$ 200,19 -> 18 vendas e R$ 3.603,15)
+    // 3. Atualizar o dia 30/08/2026 no entries (descontando os reembolsos -> 17 vendas e R$ 3.240,35)
     await fetch(`${SUPABASE_URL}/rest/v1/entries?date=eq.2026-08-30`, {
       method: 'PATCH',
       headers,
       body: JSON.stringify({
-        sales: 18,
-        revenue: 3603.15,
+        sales: 17,
+        revenue: 3240.35,
         updatedAt: new Date().toISOString()
       })
     });

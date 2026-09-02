@@ -127,12 +127,24 @@ module.exports = async (req, res) => {
     const existingEvents = await fetchExistingEventResponse.json();
     const existingEvent = existingEvents.length > 0 ? existingEvents[0] : null;
 
-    // Se o evento já existe e já estava aprovado, não fazemos nada (evita duplicações)
-    if (existingEvent && existingEvent.status === 'approved') {
-      return res.status(200).json({
-        success: true,
-        message: 'Evento já processado e aprovado anteriormente.'
-      });
+    // Se o evento já existe com o mesmo status (aprovado ou reembolsado), não processamos novamente (evita duplicações e retries da Cooud)
+    if (existingEvent) {
+      const wasApproved = existingEvent.status === 'approved' || existingEvent.status.startsWith('approved_rate:');
+      const wasRefunded = existingEvent.status === 'refunded' || existingEvent.status.startsWith('refunded_rate:');
+      
+      if (status === 'approved' && wasApproved) {
+        return res.status(200).json({
+          success: true,
+          message: 'Evento de aprovação já processado anteriormente.'
+        });
+      }
+
+      if (status === 'refunded' && wasRefunded) {
+        return res.status(200).json({
+          success: true,
+          message: 'Evento de reembolso já processado anteriormente.'
+        });
+      }
     }
 
     // 8. Salvar ou atualizar o evento na tabela cooud_events
