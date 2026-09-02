@@ -9,10 +9,12 @@
 
   const state = {
     entries: [],
+    extraExpenses: [],
     settings: store.getSettings(),
     periodType: 'last7',
     currentRange: null,
     currentView: 'dashboard',
+    selectedExtraExpenseMonth: calc.toISODate(new Date()).slice(0, 7),
     tableSort: { key: 'date', direction: 'desc' },
     mainSeriesVisibility: { revenue: true, adSpend: true, realCost: true, profit: true },
     cooudStats: null,
@@ -48,6 +50,7 @@
 
   function refreshData() {
     state.entries = store.getEntries();
+    state.extraExpenses = store.getExtraExpenses();
     state.settings = store.getSettings();
     updatePeriodRange();
   }
@@ -161,6 +164,7 @@
     const titles = {
       dashboard: 'Dashboard',
       entries: 'Lançamentos',
+      extraExpenses: 'Gastos Extras',
       calendar: 'Calendário',
       reports: 'Relatórios',
       cooud: 'Integração Cooud',
@@ -172,6 +176,9 @@
 
     if (viewName === 'converter') {
       fetchExchangeRates();
+    }
+    if (viewName === 'extraExpenses') {
+      renderExtraExpensesView();
     }
 
     render();
@@ -783,6 +790,15 @@
     if ($('#calcSourceCurrency')) $('#calcSourceCurrency').onchange = calculateConversion;
     if ($('#calcTargetCurrency')) $('#calcTargetCurrency').onchange = calculateConversion;
     if ($('#calcAmount')) $('#calcAmount').oninput = calculateConversion;
+
+    // Eventos da Aba Gastos Extras
+    if ($('#extraExpenseForm')) $('#extraExpenseForm').onsubmit = handleSaveExtraExpense;
+    if ($('#clearExtraExpenseBtn')) $('#clearExtraExpenseBtn').onclick = clearExtraExpenseForm;
+    if ($('#extraExpenseMonthSelector')) $('#extraExpenseMonthSelector').onchange = (e) => {
+      state.selectedExtraExpenseMonth = e.target.value;
+      renderExtraExpensesView();
+    };
+    if ($('#exportExtraExpensesBtn')) $('#exportExtraExpensesBtn').onclick = exportExtraExpensesCSV;
   }
 
   function sortBy(key) {
@@ -800,11 +816,174 @@
     $('#todayLabel').textContent = `Hoje: ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}`;
     if (state.currentView === 'dashboard') renderDashboard();
     if (state.currentView === 'cooud') fetchCooudStats();
+    if (state.currentView === 'extraExpenses') renderExtraExpensesView();
     renderTables();
     renderPeriodSummary();
     renderCalendar();
     renderSettingsForms();
     renderFormPreview();
+  }
+
+  // --- Funções da Aba Gastos Extras ---
+  function formatMonthName(yyyyMm) {
+    if (!yyyyMm || yyyyMm.length < 7) return '--';
+    const [year, month] = yyyyMm.split('-');
+    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const idx = parseInt(month, 10) - 1;
+    return `${monthNames[idx] || month} de ${year}`;
+  }
+
+  function escapeHTML(str) {
+    return String(str || '').replace(/[&<>'"]/g, 
+      tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+    );
+  }
+
+  function renderExtraExpensesView() {
+    const selectedMonth = state.selectedExtraExpenseMonth || calc.toISODate(new Date()).slice(0, 7);
+    const monthSelector = $('#extraExpenseMonthSelector');
+    if (monthSelector && monthSelector.value !== selectedMonth) {
+      monthSelector.value = selectedMonth;
+    }
+
+    const monthExpenses = (state.extraExpenses || []).filter(e => e.date && e.date.startsWith(selectedMonth));
+    const totalAmount = monthExpenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+    const count = monthExpenses.length;
+    const highestExpense = monthExpenses.reduce((max, e) => (Number(e.amount) || 0) > (max ? Number(max.amount) || 0 : 0) ? e : max, null);
+
+    if ($('#extraExpensesTotal')) $('#extraExpensesTotal').textContent = fmtMoney(totalAmount);
+    if ($('#extraExpensesCount')) $('#extraExpensesCount').textContent = count;
+    if ($('#extraExpensesHighest')) $('#extraExpensesHighest').textContent = highestExpense ? fmtMoney(highestExpense.amount) : 'R$ 0,00';
+    if ($('#extraExpensesHighestDesc')) $('#extraExpensesHighestDesc').textContent = highestExpense ? `${highestExpense.description} (${fmtMoney(highestExpense.amount)})` : '--';
+    if ($('#extraExpensesMonthLabel')) $('#extraExpensesMonthLabel').textContent = formatMonthName(selectedMonth);
+    if ($('#extraExpensesTableSubtitle')) $('#extraExpensesTableSubtitle').textContent = `Lista de despesas de ${formatMonthName(selectedMonth)}`;
+
+    const tbody = $('#extraExpensesTableBody');
+    if (tbody) {
+      if (monthExpenses.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--muted); padding: 25px;">Nenhum gasto extra cadastrado em ' + formatMonthName(selectedMonth) + '.</td></tr>';
+      } else {
+        const sorted = [...monthExpenses].sort((a, b) => b.date.localeCompare(a.date));
+        tbody.innerHTML = sorted.map(exp => `
+          <tr>
+            <td>${fmtDate(exp.date)}</td>
+            <td><strong>${escapeHTML(exp.description)}</strong></td>
+            <td><span class="badge" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.25); padding: 2px 8px; border-radius: 6px; font-size: 0.8rem;">${escapeHTML(exp.category || 'Outros')}</span></td>
+            <td style="font-weight: 600; color: #f87171;">${fmtMoney(exp.amount)}</td>
+            <td style="color: var(--muted); font-size: 0.85rem;">${escapeHTML(exp.notes || '-')}</td>
+            <td>
+              <div class="actions">
+                <button class="action-btn" data-action="edit-extra" data-id="${exp.id}">Editar</button>
+                <button class="action-btn" data-action="delete-extra" data-id="${exp.id}">Excluir</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+
+        $$('button[data-action]', tbody).forEach(btn => {
+          btn.onclick = () => {
+            const id = btn.dataset.id;
+            if (btn.dataset.action === 'edit-extra') editExtraExpense(id);
+            if (btn.dataset.action === 'delete-extra') deleteExtraExpense(id);
+          };
+        });
+      }
+    }
+  }
+
+  function handleSaveExtraExpense(event) {
+    event.preventDefault();
+    const id = $('#extraExpenseId').value;
+    const description = $('#extraExpenseDesc').value.trim();
+    const amount = Number($('#extraExpenseAmount').value);
+    const date = $('#extraExpenseDate').value;
+    const category = $('#extraExpenseCategory').value;
+    const notes = $('#extraExpenseNotes').value.trim();
+
+    if (!description) return toast('Informe a descrição do gasto.');
+    if (!amount || amount <= 0) return toast('Informe um valor válido maior que zero.');
+    if (!date) return toast('Informe a data do gasto.');
+
+    const expense = {
+      id: id || undefined,
+      description,
+      amount,
+      date,
+      category,
+      notes,
+    };
+
+    store.upsertExtraExpense(expense);
+    state.selectedExtraExpenseMonth = date.slice(0, 7);
+    refreshData();
+    clearExtraExpenseForm();
+    renderExtraExpensesView();
+    toast('Gasto extra salvo com sucesso.');
+  }
+
+  function editExtraExpense(id) {
+    const expense = (state.extraExpenses || []).find(e => e.id === id);
+    if (!expense) return;
+
+    $('#extraExpenseId').value = expense.id;
+    $('#extraExpenseDesc').value = expense.description;
+    $('#extraExpenseAmount').value = expense.amount;
+    $('#extraExpenseDate').value = expense.date;
+    $('#extraExpenseCategory').value = expense.category || 'Outros';
+    $('#extraExpenseNotes').value = expense.notes || '';
+    $('#extraExpenseFormTitle').textContent = 'Editar Gasto Extra';
+    $('#saveExtraExpenseBtn').textContent = 'Atualizar Gasto';
+
+    const formPanel = $('#extraExpenseForm');
+    if (formPanel) {
+      formPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  function clearExtraExpenseForm() {
+    $('#extraExpenseId').value = '';
+    $('#extraExpenseDesc').value = '';
+    $('#extraExpenseAmount').value = '';
+    $('#extraExpenseDate').value = calc.toISODate(new Date());
+    $('#extraExpenseCategory').value = 'Outros';
+    $('#extraExpenseNotes').value = '';
+    $('#extraExpenseFormTitle').textContent = 'Lançamento de Gasto Extra';
+    $('#saveExtraExpenseBtn').textContent = 'Salvar Gasto Extra';
+  }
+
+  function deleteExtraExpense(id) {
+    const expense = (state.extraExpenses || []).find(e => e.id === id);
+    if (!expense) return;
+
+    if (!confirm(`Excluir o gasto extra "${expense.description}" no valor de ${fmtMoney(expense.amount)}?`)) return;
+
+    store.deleteExtraExpense(id);
+    refreshData();
+    renderExtraExpensesView();
+    toast('Gasto extra excluído.');
+  }
+
+  function exportExtraExpensesCSV() {
+    const selectedMonth = state.selectedExtraExpenseMonth || calc.toISODate(new Date()).slice(0, 7);
+    const monthExpenses = (state.extraExpenses || []).filter(e => e.date && e.date.startsWith(selectedMonth));
+    if (monthExpenses.length === 0) {
+      return toast('Nenhum gasto cadastrado no mês selecionado para exportar.');
+    }
+
+    const headers = ['Data', 'Descrição', 'Categoria', 'Valor (R$)', 'Observações'];
+    const lines = [headers.join(';')];
+    monthExpenses.sort((a, b) => a.date.localeCompare(b.date)).forEach(e => {
+      lines.push([
+        fmtDate(e.date),
+        `"${String(e.description || '').replaceAll('"', '""')}"`,
+        `"${String(e.category || '').replaceAll('"', '""')}"`,
+        brNumber(e.amount),
+        `"${String(e.notes || '').replaceAll('"', '""')}"`
+      ].join(';'));
+    });
+
+    downloadBlob(`gastos-extras-${selectedMonth}.csv`, '\ufeff' + lines.join('\n'), 'text/csv;charset=utf-8');
+    toast('CSV de gastos extras exportado.');
   }
 
   // --- Funções Auxiliares do Conversor de Moedas ---
@@ -1045,6 +1224,8 @@
     $('#customStart').value = todayISO;
     $('#customEnd').value = todayISO;
     $('#calendarMonth').value = todayISO.slice(0, 7);
+    if ($('#extraExpenseDate')) $('#extraExpenseDate').value = todayISO;
+    if ($('#extraExpenseMonthSelector')) $('#extraExpenseMonthSelector').value = todayISO.slice(0, 7);
 
     store.seedSampleData(false);
     refreshData();

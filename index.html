@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Painel de Operação</title>
-  <link rel="stylesheet" href="style.css?v=1.1.4">
+  <link rel="stylesheet" href="style.css?v=1.2.0">
   
   <!-- PWA e iOS shortcut config -->
   <link rel="manifest" href="manifest.json">
@@ -42,6 +42,7 @@
       <nav class="nav">
         <button class="nav-btn active" data-view="dashboard">Dashboard</button>
         <button class="nav-btn" data-view="entries">Lançamentos</button>
+        <button class="nav-btn" data-view="extraExpenses">Gastos Extras</button>
         <button class="nav-btn" data-view="calendar">Calendário</button>
         <button class="nav-btn" data-view="reports">Relatórios</button>
         <button class="nav-btn" data-view="cooud">Cooud</button>
@@ -333,6 +334,111 @@
         </section>
       </section>
 
+      <!-- Aba Gastos Extras -->
+      <section id="extraExpenses" class="view">
+        <!-- Cards de Resumo dos Gastos Extras -->
+        <div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+          <div class="card">
+            <span>Total Gastos Extras (Mês)</span>
+            <strong id="extraExpensesTotal">R$ 0,00</strong>
+            <small id="extraExpensesMonthLabel" style="color: var(--muted); font-size: 0.8rem; margin-top: 4px; display: block;">Mês atual</small>
+          </div>
+          <div class="card">
+            <span>Quantidade de Despesas</span>
+            <strong id="extraExpensesCount">0</strong>
+            <small style="color: var(--muted); font-size: 0.8rem; margin-top: 4px; display: block;">Itens cadastrados</small>
+          </div>
+          <div class="card">
+            <span>Maior Despesa</span>
+            <strong id="extraExpensesHighest">R$ 0,00</strong>
+            <small id="extraExpensesHighestDesc" style="color: var(--muted); font-size: 0.8rem; margin-top: 4px; display: block;">--</small>
+          </div>
+          <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <span>Filtrar por Mês</span>
+            <div style="margin-top: 6px;">
+              <input type="month" id="extraExpenseMonthSelector" style="background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-weight: bold; width: 100%; box-sizing: border-box;">
+            </div>
+            <small style="color: var(--muted); font-size: 0.75rem; margin-top: 4px; display: block;">Selecione para ver outros meses</small>
+          </div>
+        </div>
+
+        <!-- Formulário de Cadastro de Gasto Extra -->
+        <section class="panel" style="margin-top: 15px;">
+          <div class="panel-head">
+            <div>
+              <h2 id="extraExpenseFormTitle">Lançamento de Gasto Extra</h2>
+              <p>Cadastre os custos fixos ou extras do mês (contabilidade, ferramentas, equipe, servidores, etc.)</p>
+            </div>
+          </div>
+          <form id="extraExpenseForm" class="entry-form">
+            <input type="hidden" id="extraExpenseId">
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+              <label>
+                Descrição do Gasto
+                <input type="text" id="extraExpenseDesc" placeholder="Ex: Contabilidade, Servidor VPS, Designer..." required>
+              </label>
+              <label>
+                Valor do Gasto (R$)
+                <input type="number" id="extraExpenseAmount" step="0.01" min="0" placeholder="0,00" required>
+              </label>
+              <label>
+                Data da Despesa
+                <input type="date" id="extraExpenseDate" required>
+              </label>
+              <label>
+                Categoria
+                <select id="extraExpenseCategory">
+                  <option value="Ferramentas / SaaS">Ferramentas / SaaS</option>
+                  <option value="Equipe / Terceiros">Equipe / Terceiros</option>
+                  <option value="Infraestrutura / Servidores">Infraestrutura / Servidores</option>
+                  <option value="Impostos / Taxas">Impostos / Taxas</option>
+                  <option value="Serviços / Assessorias">Serviços / Assessorias</option>
+                  <option value="Outros" selected>Outros</option>
+                </select>
+              </label>
+            </div>
+            <label style="margin-top: 12px; display: block;">
+              Observações (Opcional)
+              <textarea id="extraExpenseNotes" rows="2" placeholder="Detalhes adicionais sobre o gasto..."></textarea>
+            </label>
+            <div class="form-actions" style="margin-top: 15px; display: flex; gap: 10px;">
+              <button class="primary" type="submit" id="saveExtraExpenseBtn">Salvar Gasto Extra</button>
+              <button class="ghost" type="button" id="clearExtraExpenseBtn">Limpar / Novo</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Tabela de Gastos Extras -->
+        <section class="panel" style="margin-top: 15px;">
+          <div class="panel-head">
+            <div>
+              <h2>Histórico de Gastos Extras</h2>
+              <p id="extraExpensesTableSubtitle">Lista de despesas cadastradas no mês selecionado</p>
+            </div>
+            <button id="exportExtraExpensesBtn" class="ghost">Exportar CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="extraExpensesTable">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Descrição</th>
+                  <th>Categoria</th>
+                  <th>Valor</th>
+                  <th>Observações</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="extraExpensesTableBody">
+                <tr>
+                  <td colspan="6" style="text-align: center; color: var(--muted); padding: 20px;">Nenhum gasto extra cadastrado neste mês.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
       <section id="converter" class="view">
         <section class="panel">
           <div class="panel-head">
@@ -418,9 +524,9 @@
 
   <div id="toast" class="toast" aria-live="polite"></div>
 
-  <script src="calculations.js?v=1.1.4"></script>
-  <script src="storage.js?v=1.1.4"></script>
-  <script src="charts.js?v=1.1.4"></script>
-  <script src="app.js?v=1.1.4"></script>
+  <script src="calculations.js?v=1.2.0"></script>
+  <script src="storage.js?v=1.2.0"></script>
+  <script src="charts.js?v=1.2.0"></script>
+  <script src="app.js?v=1.2.0"></script>
 </body>
 </html>

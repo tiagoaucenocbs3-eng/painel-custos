@@ -47,3 +47,19 @@ CREATE TABLE IF NOT EXISTS cooud_events (
 
 -- Desabilitar RLS
 ALTER TABLE cooud_events DISABLE ROW LEVEL SECURITY;
+
+-- 4. Criar a tabela de gastos extras mensais (extra_expenses)
+CREATE TABLE IF NOT EXISTS extra_expenses (
+  id TEXT PRIMARY KEY,
+  date TEXT NOT NULL, -- YYYY-MM-DD
+  description TEXT NOT NULL,
+  amount NUMERIC DEFAULT 0,
+  category TEXT DEFAULT 'Outros',
+  notes TEXT,
+  "createdAt" TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
+  "updatedAt" TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+);
+
+-- Desabilitar RLS
+ALTER TABLE extra_expenses DISABLE ROW LEVEL SECURITY;
+

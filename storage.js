@@ -4,10 +4,13 @@
   const ENTRY_KEY = 'painelOperacao.entries.v1';
   const SETTINGS_KEY = 'painelOperacao.settings.v1';
   const SEEDED_KEY = 'painelOperacao.seeded.v1';
+  const EXTRA_EXPENSES_KEY = 'painelOperacao.extraExpenses.v1';
 
   // Chaves para sincronização e autenticação
   const PENDING_DELETES_KEY = 'painelOperacao.pendingDeletes.v1';
   const PENDING_UPSERTS_KEY = 'painelOperacao.pendingUpserts.v1';
+  const PENDING_EXTRA_DELETES_KEY = 'painelOperacao.pendingExtraDeletes.v1';
+  const PENDING_EXTRA_UPSERTS_KEY = 'painelOperacao.pendingExtraUpserts.v1';
   const MIGRATED_KEY = 'painelOperacao.migratedToCloud.v1';
   const AUTH_TOKEN_KEY = 'painelOperacao.password.v1';
 
@@ -174,6 +177,19 @@
     };
   }
 
+  function normalizeExtraExpense(expense = {}) {
+    return {
+      id: expense.id || uuid(),
+      date: expense.date || (root.FinCalc && root.FinCalc.toISODate ? root.FinCalc.toISODate(new Date()) : new Date().toISOString().slice(0, 10)),
+      description: String(expense.description || '').trim(),
+      amount: Math.max(0, Number(expense.amount) || 0),
+      category: String(expense.category || 'Outros').trim(),
+      notes: String(expense.notes || '').trim(),
+      createdAt: expense.createdAt || new Date().toISOString(),
+      updatedAt: expense.updatedAt || new Date().toISOString(),
+    };
+  }
+
   // --- Função Auxiliar de Autenticação ---
   function getAuthHeaders(extraHeaders = {}) {
     const password = localStorage.getItem(AUTH_TOKEN_KEY) || '';
@@ -239,6 +255,33 @@
       if (!res.ok) throw new Error('Falha ao salvar configurações na API');
       return res.json();
     },
+    async fetchExtraExpenses() {
+      const res = await fetch('/api/extra-expenses', {
+        headers: getAuthHeaders()
+      });
+      if (res.status === 401) throw new Error('AUTH_ERROR');
+      if (!res.ok) throw new Error('Falha ao buscar gastos extras da API');
+      return res.json();
+    },
+    async upsertExtraExpense(expense) {
+      const res = await fetch('/api/extra-expenses', {
+        method: 'POST',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(expense),
+      });
+      if (res.status === 401) throw new Error('AUTH_ERROR');
+      if (!res.ok) throw new Error('Falha ao salvar gasto extra na API');
+      return res.json();
+    },
+    async deleteExtraExpense(id) {
+      const res = await fetch(`/api/extra-expenses?id=${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      if (res.status === 401) throw new Error('AUTH_ERROR');
+      if (!res.ok) throw new Error('Falha ao excluir gasto extra na API');
+      return res.json();
+    },
   };
 
   // --- Filas e Sincronização em Background ---
@@ -246,6 +289,11 @@
   function savePendingDeletes(ids) { writeJSON(PENDING_DELETES_KEY, ids); }
   function getPendingUpserts() { return readJSON(PENDING_UPSERTS_KEY, []); }
   function savePendingUpserts(entries) { writeJSON(PENDING_UPSERTS_KEY, entries); }
+
+  function getPendingExtraDeletes() { return readJSON(PENDING_EXTRA_DELETES_KEY, []); }
+  function savePendingExtraDeletes(ids) { writeJSON(PENDING_EXTRA_DELETES_KEY, ids); }
+  function getPendingExtraUpserts() { return readJSON(PENDING_EXTRA_UPSERTS_KEY, []); }
+  function savePendingExtraUpserts(expenses) { writeJSON(PENDING_EXTRA_UPSERTS_KEY, expenses); }
 
   function queueUpsert(entry) {
     if (entry.sample) return;
@@ -271,6 +319,33 @@
     api.deleteEntry(id)
       .then(() => {
         savePendingDeletes(getPendingDeletes().filter(x => x !== id));
+      })
+      .catch(() => {});
+  }
+
+  function queueExtraUpsert(expense) {
+    const upserts = getPendingExtraUpserts();
+    if (!upserts.some(x => x.id === expense.id)) {
+      upserts.push(expense);
+      savePendingExtraUpserts(upserts);
+    }
+    api.upsertExtraExpense(expense)
+      .then(() => {
+        savePendingExtraUpserts(getPendingExtraUpserts().filter(x => x.id !== expense.id));
+      })
+      .catch(() => {});
+  }
+
+  function queueExtraDelete(id) {
+    const deletes = getPendingExtraDeletes();
+    if (!deletes.includes(id)) {
+      deletes.push(id);
+      savePendingExtraDeletes(deletes);
+    }
+    savePendingExtraUpserts(getPendingExtraUpserts().filter(x => x.id !== id));
+    api.deleteExtraExpense(id)
+      .then(() => {
+        savePendingExtraDeletes(getPendingExtraDeletes().filter(x => x !== id));
       })
       .catch(() => {});
   }
@@ -453,7 +528,88 @@
         console.warn('[Sync] Erro ao sincronizar lançamentos da nuvem:', err);
       }
 
-      // 5. Se houve mudanças, recarrega a UI
+      // 5. Sincronizar Gastos Extras (Extra Expenses)
+      try {
+        const extraDeletes = getPendingExtraDeletes();
+        for (const id of [...extraDeletes]) {
+          try {
+            await api.deleteExtraExpense(id);
+            savePendingExtraDeletes(getPendingExtraDeletes().filter(x => x !== id));
+          } catch (err) {
+            if (err.message === 'AUTH_ERROR') { handleAuthError(); return; }
+            console.warn('[Sync] Falha ao enviar exclusão de gasto extra:', id, err);
+          }
+        }
+
+        const extraUpserts = getPendingExtraUpserts();
+        for (const expense of [...extraUpserts]) {
+          try {
+            await api.upsertExtraExpense(expense);
+            savePendingExtraUpserts(getPendingExtraUpserts().filter(x => x.id !== expense.id));
+          } catch (err) {
+            if (err.message === 'AUTH_ERROR') { handleAuthError(); return; }
+            console.warn('[Sync] Falha ao enviar gasto extra pendente:', expense.id, err);
+          }
+        }
+
+        const cloudExpenses = await api.fetchExtraExpenses();
+        if (Array.isArray(cloudExpenses)) {
+          const localExpenses = readJSON(EXTRA_EXPENSES_KEY, []).map(normalizeExtraExpense);
+          const merged = [...localExpenses];
+          const cloudMap = new Map(cloudExpenses.map(e => [e.id, e]));
+          const localMap = new Map(localExpenses.map(e => [e.id, e]));
+
+          for (const cloudExp of cloudExpenses) {
+            const local = localMap.get(cloudExp.id);
+            if (!local) {
+              if (!getPendingExtraDeletes().includes(cloudExp.id)) {
+                merged.push(cloudExp);
+                dataChanged = true;
+              }
+            } else {
+              const localTime = new Date(local.updatedAt || local.createdAt || 0).getTime();
+              const cloudTime = new Date(cloudExp.updatedAt || cloudExp.createdAt || 0).getTime();
+              if (cloudTime > localTime) {
+                const idx = merged.findIndex(x => x.id === cloudExp.id);
+                if (idx >= 0) {
+                  merged[idx] = cloudExp;
+                  dataChanged = true;
+                }
+              } else if (localTime > cloudTime) {
+                queueExtraUpsert(local);
+              }
+            }
+          }
+
+          for (const localExp of localExpenses) {
+            if (!cloudMap.has(localExp.id)) {
+              if (getPendingExtraDeletes().includes(localExp.id)) continue;
+              const upserts = getPendingExtraUpserts();
+              const isPending = upserts.some(x => x.id === localExp.id);
+              if (!isPending) {
+                const idx = merged.findIndex(x => x.id === localExp.id);
+                if (idx >= 0) {
+                  merged.splice(idx, 1);
+                  dataChanged = true;
+                }
+              } else {
+                queueExtraUpsert(localExp);
+              }
+            }
+          }
+
+          if (merged.length !== localExpenses.length || dataChanged) {
+            merged.sort((a, b) => b.date.localeCompare(a.date));
+            writeJSON(EXTRA_EXPENSES_KEY, merged.map(normalizeExtraExpense));
+            dataChanged = true;
+          }
+        }
+      } catch (err) {
+        if (err.message === 'AUTH_ERROR') { handleAuthError(); return; }
+        console.warn('[Sync] Erro ao sincronizar gastos extras da nuvem:', err);
+      }
+
+      // 6. Se houve mudanças, recarrega a UI
       if (dataChanged && window.PainelOperacao && typeof window.PainelOperacao.refreshData === 'function') {
         console.log('[Sync] Dados atualizados. Atualizando interface...');
         window.PainelOperacao.refreshData();
@@ -506,6 +662,35 @@
         queueDelete(id);
       }
     },
+    getExtraExpenses() {
+      return readJSON(EXTRA_EXPENSES_KEY, []).map(normalizeExtraExpense).sort((a, b) => b.date.localeCompare(a.date));
+    },
+    saveExtraExpenses(expenses) {
+      writeJSON(EXTRA_EXPENSES_KEY, expenses.map(normalizeExtraExpense));
+    },
+    upsertExtraExpense(expense) {
+      const expenses = this.getExtraExpenses();
+      const normalized = normalizeExtraExpense(expense);
+      normalized.updatedAt = new Date().toISOString();
+      const index = expenses.findIndex((item) => item.id === normalized.id);
+      if (index >= 0) expenses[index] = { ...expenses[index], ...normalized };
+      else expenses.push(normalized);
+      this.saveExtraExpenses(expenses);
+
+      if (location.protocol !== 'file:') {
+        queueExtraUpsert(normalized);
+      }
+
+      return normalized;
+    },
+    deleteExtraExpense(id) {
+      const expenses = this.getExtraExpenses().filter((item) => item.id !== id);
+      this.saveExtraExpenses(expenses);
+
+      if (location.protocol !== 'file:') {
+        queueExtraDelete(id);
+      }
+    },
     getSettings() {
       return { ...defaultSettings, ...readJSON(SETTINGS_KEY, {}) };
     },
@@ -527,6 +712,7 @@
         version: 1,
         exportedAt: new Date().toISOString(),
         entries: this.getEntries(),
+        extraExpenses: this.getExtraExpenses(),
         settings: this.getSettings(),
       };
     },
@@ -535,6 +721,9 @@
         throw new Error('Arquivo inválido. O JSON precisa conter entries[] e settings.');
       }
       this.saveEntries(backup.entries.map(normalizeEntry));
+      if (Array.isArray(backup.extraExpenses)) {
+        this.saveExtraExpenses(backup.extraExpenses.map(normalizeExtraExpense));
+      }
       this.saveSettings({ ...defaultSettings, ...backup.settings });
       localStorage.setItem(SEEDED_KEY, 'manual-import');
 
@@ -542,6 +731,10 @@
         const entries = this.getEntries().filter(e => !e.sample);
         for (const entry of entries) {
           queueUpsert(entry);
+        }
+        const extraExpenses = this.getExtraExpenses();
+        for (const exp of extraExpenses) {
+          queueExtraUpsert(exp);
         }
         api.saveSettings(this.getSettings()).catch(() => {});
       }
