@@ -21,73 +21,49 @@ module.exports = async (req, res) => {
       'Content-Type': 'application/json'
     };
 
-    const startDate = '2026-08-30';
-    const endDate = '2026-08-30';
+    // 1. Buscar todos os cooud_events
+    const urlEvents = `${SUPABASE_URL}/rest/v1/cooud_events?select=*&order=date.desc,createdAt.desc`;
+    const respEvents = await fetch(urlEvents, { headers });
+    const events = respEvents.ok ? await respEvents.json() : [];
 
-    // 1. Simular a consulta do cooud-stats
-    const url = `${SUPABASE_URL}/rest/v1/cooud_events?date=gte.${startDate}&date=lte.${endDate}&order=date.desc,createdAt.desc`;
-    const response = await fetch(url, { headers });
+    // 2. Buscar todas as entries
+    const urlEntries = `${SUPABASE_URL}/rest/v1/entries?select=*&order=date.asc`;
+    const respEntries = await fetch(urlEntries, { headers });
+    const entries = respEntries.ok ? await respEntries.json() : [];
 
-    if (!response.ok) {
-      throw new Error(`Erro ao buscar eventos: ${await response.text()}`);
-    }
-
-    const events = await response.json();
-
-    // Calcular estatísticas
-    let grossRevenue = 0;
-    let netRevenue = 0;
-    let approvedOrders = 0;
-    let refusedOrders = 0;
-    let refundCount = 0;
-    let refundAmount = 0;
+    // 3. Agrupar cooud_events por data e status
+    const eventsByDate = {};
+    const refunds = [];
+    const approved = [];
 
     events.forEach(evt => {
-      const amt = parseFloat(evt.amount || 0);
-      const netAmt = parseFloat(evt.net_amount || 0);
+      const isApproved = evt.status === 'approved' || (evt.status && evt.status.startsWith('approved_rate:'));
+      const isRefunded = evt.status === 'refunded' || (evt.status && evt.status.startsWith('refunded_rate:'));
 
-      if (evt.status === 'approved') {
-        approvedOrders++;
-        grossRevenue += amt;
-        netRevenue += netAmt;
-      } else if (evt.status === 'refused') {
-        refusedOrders++;
-      } else if (evt.status === 'refunded') {
-        refundCount++;
-        refundAmount += amt;
+      if (isApproved) approved.push(evt);
+      if (isRefunded) refunds.push(evt);
+
+      if (!eventsByDate[evt.date]) {
+        eventsByDate[evt.date] = { approved: 0, refunded: 0, refused: 0, other: 0, items: [] };
       }
-    });
+      if (isApproved) eventsByDate[evt.date].approved++;
+      else if (isRefunded) eventsByDate[evt.date].refunded++;
+      else if (evt.status === 'refused') eventsByDate[evt.date].refused++;
+      else eventsByDate[evt.date].other++;
 
-    const totalOrders = approvedOrders + refusedOrders;
-    const approvalRate = totalOrders > 0 ? (approvedOrders / totalOrders) * 100 : 0;
-
-    // 2. Buscar lançamentos recentes (entries)
-    const entriesRes = await fetch(`${SUPABASE_URL}/rest/v1/entries?select=*&order=date.desc&limit=5`, {
-      headers
+      eventsByDate[evt.date].items.push({ id: evt.id, status: evt.status, amount: evt.amount, net_amount: evt.net_amount });
     });
-    if (!entriesRes.ok) {
-      throw new Error(`Erro ao buscar lançamentos: ${await entriesRes.text()}`);
-    }
-    const entries = await entriesRes.json();
 
     return res.status(200).json({
-      success: true,
-      queryUrl: url,
-      eventsCount: events.length,
-      events,
-      entries,
-      summary: {
-        grossRevenue,
-        netRevenue,
-        approvedOrders,
-        refusedOrders,
-        totalOrders,
-        approvalRate,
-        refundCount,
-        refundAmount
-      }
+      totalEvents: events.length,
+      totalApproved: approved.length,
+      totalRefunds: refunds.length,
+      refundsList: refunds,
+      eventsByDate,
+      entriesSummary: entries.map(e => ({ date: e.date, sales: e.sales, revenue: e.revenue, adSpend: e.adSpend, id: e.id })),
+      totalEntriesSales: entries.reduce((a, b) => a + (Number(b.sales) || 0), 0),
+      totalEntriesRevenue: entries.reduce((a, b) => a + (Number(b.revenue) || 0), 0),
     });
-
   } catch (error) {
     return res.status(500).json({ error: 'Erro no teste.', details: error.message });
   }
