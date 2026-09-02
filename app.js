@@ -143,11 +143,12 @@
             revenue: Math.round((4166.14 + extraRevenueBRL) * 100) / 100
           };
         } else {
-          // A partir de amanhã, o webhook é 100% automático (sem baseline)
+          // O webhook da Cooud é a fonte viva da verdade para as vendas e faturamento de hoje.
+          // O gasto com anúncios é preservado conforme cadastrado pelo usuário.
           return {
             ...entry,
-            sales: entry.id === 'virtual-today' || entry.sales === 0 ? cooudSales : entry.sales,
-            revenue: entry.id === 'virtual-today' || entry.revenue === 0 ? cooudRevenueBRL : entry.revenue
+            sales: cooudSales > 0 ? cooudSales : entry.sales,
+            revenue: cooudRevenueBRL > 0 ? cooudRevenueBRL : entry.revenue
           };
         }
       }
