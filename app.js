@@ -1202,9 +1202,8 @@
 
   async function loadCooudToday() {
     try {
-      const todayISO = calc.toISODate(new Date());
       const password = localStorage.getItem('painelOperacao.password.v1') || '';
-      const res = await fetch(`/api/cooud-stats?startDate=${todayISO}&endDate=${todayISO}`, {
+      const res = await fetch(`/api/cooud-stats?startDate=all&endDate=all`, {
         headers: {
           'Authorization': password
         }
@@ -1215,7 +1214,7 @@
         render();
       }
     } catch (err) {
-      console.warn('Erro ao carregar dados hoje da Cooud para o Dashboard:', err);
+      console.warn('Erro ao carregar dados da Cooud para o Dashboard:', err);
     }
   }
 

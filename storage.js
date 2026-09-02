@@ -46,12 +46,12 @@
         "date": "2026-08-23",
         "adSpend": 966.94,
         "iofPercent": 3.5,
-        "sales": 14,
-        "revenue": 3286.96,
+        "sales": 13,
+        "revenue": 3086.54,
         "notes": "",
         "sample": false,
         "createdAt": "2026-08-28T23:15:01.352Z",
-        "updatedAt": "2026-08-30T13:47:22.818Z"
+        "updatedAt": "2026-09-02T13:47:22.818Z"
       },
       {
         "id": "a4106b6f-0eb3-4743-b2df-8788910b5bc9",
@@ -106,7 +106,7 @@
         "date": "2026-08-29",
         "adSpend": 1372.62,
         "iofPercent": 3.5,
-        "sales": 8,
+        "sales": 10,
         "revenue": 2005.5,
         "notes": "",
         "sample": false,
@@ -114,16 +114,16 @@
         "updatedAt": "2026-08-30T13:47:22.818Z"
       },
       {
-        "id": "fbd06563-65b3-45e4-a6cb-735d4ce741a5",
+        "id": "d5f8be2a-9ce0-4a71-bbf2-24b8851e3903",
         "date": "2026-08-30",
-        "adSpend": 1021.01,
+        "adSpend": 1113.46,
         "iofPercent": 3.5,
-        "sales": 14,
-        "revenue": 2982.56,
+        "sales": 18,
+        "revenue": 3603.15,
         "notes": "",
         "sample": false,
         "createdAt": "2026-08-30T19:32:59.330Z",
-        "updatedAt": "2026-08-30T19:32:59.330Z"
+        "updatedAt": "2026-09-02T13:47:22.818Z"
       }
     ],
     settings: {

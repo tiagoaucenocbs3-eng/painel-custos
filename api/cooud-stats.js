@@ -29,21 +29,19 @@ module.exports = async (req, res) => {
 
   const { startDate, endDate } = req.query;
 
-  if (!startDate || !endDate) {
-    return res.status(400).json({ error: 'Datas de início e fim são obrigatórias.' });
-  }
-
   try {
-    // Buscar todos os eventos da Cooud dentro do período
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/cooud_events?date=gte.${startDate}&date=lte.${endDate}&order=date.desc,createdAt.desc`,
-      {
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-        }
+    // Buscar todos os eventos da Cooud (com ou sem filtro de data)
+    let url = `${SUPABASE_URL}/rest/v1/cooud_events?select=*&order=date.desc,createdAt.desc`;
+    if (startDate && endDate && startDate !== 'all') {
+      url = `${SUPABASE_URL}/rest/v1/cooud_events?date=gte.${startDate}&date=lte.${endDate}&order=date.desc,createdAt.desc`;
+    }
+
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
       }
-    );
+    });
 
     if (!response.ok) {
       throw new Error(`Erro ao buscar eventos do Supabase: ${await response.text()}`);
