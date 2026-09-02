@@ -86,71 +86,37 @@
 
     const mapped = rawEntries.map(entry => {
       if (entry.date === todayISO && state.cooudStats && state.cooudStats.transactions) {
-        // Calcular faturamento em Reais somando cada transação pelo seu câmbio congelado
+        // Filtrar transações exclusivamente do dia de hoje (todayISO)
+        const todayTxs = state.cooudStats.transactions.filter(tx => tx.date === todayISO);
         let cooudRevenueBRL = 0;
         let cooudSales = 0;
-        
-        // IDs das 5 transações originais de hoje para controle de baseline
-        const original5Ids = [
-          '01M1AAMJFFWKVXA4VW5P4HQCSC',
-          '01M1AAKZJJGGS0B6B287NH0DBE',
-          '01M1AAKYJQM853AG479SHMNK5T',
-          '01M1AD78RXV0129GMW7PQ2YXC6',
-          '01M1AD776NA5THA4AKQ6BEQ4NF'
-        ];
 
-        let extraSales = 0;
-        let extraRevenueBRL = 0;
-
-        state.cooudStats.transactions.forEach(tx => {
+        todayTxs.forEach(tx => {
           const isApproved = tx.status === 'approved' || tx.status.startsWith('approved_rate:');
           const isRefunded = tx.status === 'refunded' || tx.status.startsWith('refunded_rate:');
 
           if (isApproved) {
             cooudSales++;
-            const txRate = tx.status.includes('rate:') ? parseFloat(tx.status.split('rate:')[1]) : (exchangeRates.EUR || 6.10);
+            const txRate = tx.status.includes('rate:') ? parseFloat(tx.status.split('rate:')[1]) : (exchangeRates.EUR || 5.95);
             const txBRL = tx.net_amount * txRate;
             cooudRevenueBRL += txBRL;
-
-            // Se for hoje e não for uma das 5 originais, somamos como extra
-            if (entry.date === '2026-08-30' && !original5Ids.includes(tx.id)) {
-              extraSales++;
-              extraRevenueBRL += txBRL;
-            }
           } else if (isRefunded) {
-            const txRate = tx.status.includes('rate:') ? parseFloat(tx.status.split('rate:')[1]) : (exchangeRates.EUR || 6.10);
+            const txRate = tx.status.includes('rate:') ? parseFloat(tx.status.split('rate:')[1]) : (exchangeRates.EUR || 5.95);
             const txBRL = tx.net_amount * txRate;
             cooudSales--;
             cooudRevenueBRL -= txBRL;
-
-            // Se for hoje, subtraímos do extra/total de hoje
-            if (entry.date === '2026-08-30') {
-              extraSales--;
-              extraRevenueBRL -= txBRL;
-            }
           }
         });
 
         cooudRevenueBRL = Math.round(cooudRevenueBRL * 100) / 100;
-        extraRevenueBRL = Math.round(extraRevenueBRL * 100) / 100;
 
-        if (todayISO === '2026-08-30') {
-          // Hoje é o dia da transição. Travamos o ponto de partida exato em 20 vendas e R$ 4.166,14.
-          // Qualquer nova venda extra é convertida pelo câmbio do momento da compra e somada.
-          return {
-            ...entry,
-            sales: 20 + extraSales,
-            revenue: Math.round((4166.14 + extraRevenueBRL) * 100) / 100
-          };
-        } else {
-          // O webhook da Cooud é a fonte viva da verdade para as vendas e faturamento de hoje.
-          // O gasto com anúncios é preservado conforme cadastrado pelo usuário.
-          return {
-            ...entry,
-            sales: cooudSales > 0 ? cooudSales : entry.sales,
-            revenue: cooudRevenueBRL > 0 ? cooudRevenueBRL : entry.revenue
-          };
-        }
+        // O webhook da Cooud é a fonte viva da verdade para as vendas e faturamento de hoje.
+        // O gasto com anúncios é preservado conforme cadastrado pelo usuário.
+        return {
+          ...entry,
+          sales: cooudSales > 0 ? cooudSales : entry.sales,
+          revenue: cooudRevenueBRL > 0 ? cooudRevenueBRL : entry.revenue
+        };
       }
       return entry;
     });

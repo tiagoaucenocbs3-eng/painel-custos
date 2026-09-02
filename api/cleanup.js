@@ -49,20 +49,21 @@ module.exports = async (req, res) => {
       })
     });
 
-    // 4. Atualizar o dia de hoje (02/09/2026) no entries (6 vendas e R$ 1.350,45 mantendo gasto 250.43)
+    // 4. Atualizar o dia de hoje (02/09/2026) no entries (7 vendas e R$ 1.547,29 mantendo gasto 250.43)
     await fetch(`${SUPABASE_URL}/rest/v1/entries?date=eq.2026-09-02`, {
       method: 'PATCH',
       headers,
       body: JSON.stringify({
-        sales: 6,
-        revenue: 1350.45,
+        sales: 7,
+        revenue: 1547.29,
         adSpend: 250.43,
         updatedAt: new Date().toISOString()
       })
     });
 
-    // 5. Calibrar taxa dos 6 eventos de hoje na cooud_events para taxa real de 5.95043
+    // 5. Calibrar taxa dos 7 eventos de hoje na cooud_events para taxa real de 5.944713
     const todayEvents = [
+      '01M1J4C30YYSSK8H6NMKEW4Q41',
       '01M1J3Y9CS7GG45SK6WM2BK7AC',
       '01M1J2ZQ8D8NV01RY2MAVK9PA5',
       '01M1GNHZ3Q70M4MX7Y07Q729HN',
@@ -74,7 +75,7 @@ module.exports = async (req, res) => {
       await fetch(`${SUPABASE_URL}/rest/v1/cooud_events?id=eq.${evtId}`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ status: 'approved_rate:5.95043' })
+        body: JSON.stringify({ status: 'approved_rate:5.944713' })
       });
     }
 
