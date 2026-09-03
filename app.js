@@ -110,13 +110,29 @@
 
         cooudRevenueBRL = Math.round(cooudRevenueBRL * 100) / 100;
 
-        // O webhook da Cooud é a fonte viva da verdade para as vendas e faturamento de hoje.
-        // O gasto com anúncios é preservado conforme cadastrado pelo usuário.
-        return {
-          ...entry,
-          sales: cooudSales > 0 ? cooudSales : entry.sales,
-          revenue: cooudRevenueBRL > 0 ? cooudRevenueBRL : entry.revenue
-        };
+        // Se o usuário salvou valores manuais para hoje (e não é uma entrada virtual):
+        if (entry.id !== 'virtual-today' && entry.revenue > 0) {
+          const baseSales = Number(entry.sales) || 0;
+          const baseRevenue = Number(entry.revenue) || 0;
+          const savedCooudSales = entry.savedCooudSales !== undefined ? Number(entry.savedCooudSales) : baseSales;
+          
+          // Se surgiram novas vendas após o salvamento manual, soma a diferença
+          const deltaSales = Math.max(0, cooudSales - savedCooudSales);
+          const deltaRevenue = Math.max(0, Math.round((cooudRevenueBRL - (entry.savedCooudRevenue || cooudRevenueBRL)) * 100) / 100);
+
+          return {
+            ...entry,
+            sales: baseSales + deltaSales,
+            revenue: Math.round((baseRevenue + deltaRevenue) * 100) / 100
+          };
+        } else {
+          // Entrada virtual ou ainda não salva manualmente -> usa dados automáticos da Cooud
+          return {
+            ...entry,
+            sales: cooudSales > 0 ? cooudSales : entry.sales,
+            revenue: cooudRevenueBRL > 0 ? cooudRevenueBRL : entry.revenue
+          };
+        }
       }
       return entry;
     });
@@ -499,6 +515,29 @@
     event.preventDefault();
     const entry = readFormEntry();
     if (!entry.date) return toast('Informe a data do lançamento.');
+
+    const todayISO = calc.toISODate(new Date());
+    if (entry.date === todayISO && state.cooudStats && state.cooudStats.transactions) {
+      const todayTxs = state.cooudStats.transactions.filter(tx => tx.date === todayISO);
+      let cooudRevenueBRL = 0;
+      let cooudSales = 0;
+      todayTxs.forEach(tx => {
+        const isApproved = tx.status === 'approved' || tx.status.startsWith('approved_rate:');
+        const isRefunded = tx.status === 'refunded' || tx.status.startsWith('refunded_rate:');
+        if (isApproved) {
+          cooudSales++;
+          const txRate = tx.status.includes('rate:') ? parseFloat(tx.status.split('rate:')[1]) : (exchangeRates.EUR || 5.95);
+          cooudRevenueBRL += tx.net_amount * txRate;
+        } else if (isRefunded) {
+          const txRate = tx.status.includes('rate:') ? parseFloat(tx.status.split('rate:')[1]) : (exchangeRates.EUR || 5.95);
+          cooudSales--;
+          cooudRevenueBRL -= tx.net_amount * txRate;
+        }
+      });
+      entry.savedCooudSales = cooudSales;
+      entry.savedCooudRevenue = Math.round(cooudRevenueBRL * 100) / 100;
+    }
+
     const existingSameDate = state.entries.find((item) => item.date === entry.date && item.id !== entry.id);
     if (existingSameDate && !confirm(`Já existe lançamento em ${fmtDate(entry.date)}. Deseja substituir esse lançamento?`)) return;
     if (existingSameDate) store.deleteEntry(existingSameDate.id);
