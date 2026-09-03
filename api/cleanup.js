@@ -49,38 +49,7 @@ module.exports = async (req, res) => {
       })
     });
 
-    // 4. Corrigir a data dos eventos que caíram após as 21h (UTC-3) para 2026-09-02
-    await fetch(`${SUPABASE_URL}/rest/v1/cooud_events?id=eq.01M1JHZRPVXA2S075MJEGSGM2D`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ date: '2026-09-02', status: 'approved_rate:5.942245' })
-    });
-    await fetch(`${SUPABASE_URL}/rest/v1/cooud_events?id=eq.01M1JHZNTNX6XHKJ3X7MNSAGK5`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ date: '2026-09-02' })
-    });
-
-    // 5. Calibrar taxa dos 8 eventos de hoje na cooud_events para taxa real de 5.942245
-    const todayEvents = [
-      '01M1JHZRPVXA2S075MJEGSGM2D',
-      '01M1J4C30YYSSK8H6NMKEW4Q41',
-      '01M1J3Y9CS7GG45SK6WM2BK7AC',
-      '01M1J2ZQ8D8NV01RY2MAVK9PA5',
-      '01M1GNHZ3Q70M4MX7Y07Q729HN',
-      '01M1GNH6CVPBX1T42CBKG4H7SM',
-      '01M1GGEDD80H9SP6NE32RD999N',
-      '01M1GEAHVCHRYMY131TY6C14WN'
-    ];
-    for (const evtId of todayEvents) {
-      await fetch(`${SUPABASE_URL}/rest/v1/cooud_events?id=eq.${evtId}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ status: 'approved_rate:5.942245' })
-      });
-    }
-
-    // 6. Atualizar o dia de hoje (02/09/2026) no entries (8 vendas e R$ 1.642,08 mantendo gasto 250.43)
+    // 4. Atualizar o dia 02/09/2026 no entries (8 vendas e R$ 1.642,08 mantendo gasto 250.43)
     await fetch(`${SUPABASE_URL}/rest/v1/entries?date=eq.2026-09-02`, {
       method: 'PATCH',
       headers,
@@ -92,6 +61,37 @@ module.exports = async (req, res) => {
       })
     });
 
+    // 5. Atualizar o dia de hoje (03/09/2026) no entries (8 vendas e R$ 1.897,32 mantendo gasto 687.27)
+    await fetch(`${SUPABASE_URL}/rest/v1/entries?date=eq.2026-09-03`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        sales: 8,
+        revenue: 1897.32,
+        adSpend: 687.27,
+        updatedAt: new Date().toISOString()
+      })
+    });
+
+    // 6. Atualizar a taxa dos eventos de hoje (03/09/2026) em cooud_events para taxa real exata da Cooud
+    const events03Res = await fetch(`${SUPABASE_URL}/rest/v1/cooud_events?date=eq.2026-09-03&select=*`, { headers });
+    if (events03Res.ok) {
+      const events03 = await events03Res.json();
+      const approved03 = events03.filter(e => e.status && (e.status.startsWith('approved')));
+      const totalNetEur = approved03.reduce((sum, e) => sum + (parseFloat(e.net_amount) || 0), 0);
+      if (totalNetEur > 0) {
+        const targetBRL = 1897.32;
+        const rate = (targetBRL / totalNetEur).toFixed(6);
+        for (const evt of approved03) {
+          await fetch(`${SUPABASE_URL}/rest/v1/cooud_events?id=eq.${evt.id}`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ status: `approved_rate:${rate}` })
+          });
+        }
+      }
+    }
+
     // 7. Buscar todas as entries atualizadas para confirmar
     const entriesRes = await fetch(`${SUPABASE_URL}/rest/v1/entries?select=*&order=date.asc`, { headers });
     const entries = await entriesRes.json();
@@ -101,10 +101,10 @@ module.exports = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Lançamentos e eventos de hoje atualizados com sucesso para 8 vendas.',
+      message: 'Lançamentos e eventos de 03/09/2026 calibrados com sucesso.',
       totalSales,
       totalRevenue: Math.round(totalRevenue * 100) / 100,
-      todayEntry: entries.find(e => e.date === '2026-09-02'),
+      todayEntry: entries.find(e => e.date === '2026-09-03'),
       entries
     });
 

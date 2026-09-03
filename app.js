@@ -436,18 +436,50 @@
     };
   }
 
-  function clearForm(date = calc.toISODate(new Date())) {
+  function clearForm(date = calc.toISODate(new Date()), forceEmpty = false) {
+    const todayISO = calc.toISODate(new Date());
+    const existing = !forceEmpty && state.entries.find(e => e.date === date);
+    
+    if (existing) {
+      fillForm(existing, false);
+      return;
+    }
+
     $('#entryId').value = '';
     $('#entryDate').value = date;
     $('#adSpend').value = '';
     $('#iofPercent').value = state.settings.defaultIof;
-    $('#sales').value = '';
-    $('#revenue').value = '';
+
+    // Se for hoje e tivermos transações da Cooud, preenche vendas e faturamento de hoje
+    if (date === todayISO && state.cooudStats && state.cooudStats.transactions) {
+      const todayTxs = state.cooudStats.transactions.filter(tx => tx.date === todayISO);
+      let cooudRevenueBRL = 0;
+      let cooudSales = 0;
+      todayTxs.forEach(tx => {
+        const isApproved = tx.status === 'approved' || tx.status.startsWith('approved_rate:');
+        const isRefunded = tx.status === 'refunded' || tx.status.startsWith('refunded_rate:');
+        if (isApproved) {
+          cooudSales++;
+          const txRate = tx.status.includes('rate:') ? parseFloat(tx.status.split('rate:')[1]) : (exchangeRates.EUR || 5.95);
+          cooudRevenueBRL += tx.net_amount * txRate;
+        } else if (isRefunded) {
+          const txRate = tx.status.includes('rate:') ? parseFloat(tx.status.split('rate:')[1]) : (exchangeRates.EUR || 5.95);
+          cooudSales--;
+          cooudRevenueBRL -= tx.net_amount * txRate;
+        }
+      });
+      $('#sales').value = cooudSales || '';
+      $('#revenue').value = cooudRevenueBRL ? (Math.round(cooudRevenueBRL * 100) / 100) : '';
+    } else {
+      $('#sales').value = '';
+      $('#revenue').value = '';
+    }
+
     $('#notes').value = '';
     renderFormPreview();
   }
 
-  function fillForm(entry) {
+  function fillForm(entry, switchView = true) {
     if (!entry) return;
     $('#entryId').value = entry.id === 'virtual-today' ? '' : entry.id;
     $('#entryDate').value = entry.date;
@@ -457,8 +489,10 @@
     $('#revenue').value = entry.revenue;
     $('#notes').value = entry.notes || '';
     renderFormPreview();
-    setView('entries');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (switchView) {
+      setView('entries');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   function handleSaveEntry(event) {
@@ -727,8 +761,10 @@
     $('#customEnd').onchange = () => { updatePeriodRange(); render(); };
     $('#comparisonSelect').onchange = renderComparison;
     $('#entryForm').onsubmit = handleSaveEntry;
+    if ($('#newEntryBtn')) $('#newEntryBtn').onclick = () => clearForm(calc.toISODate(new Date()), true);
+    if ($('#entryDate')) $('#entryDate').onchange = (e) => clearForm(e.target.value);
     ['#adSpend','#iofPercent','#sales','#revenue'].forEach((selector) => $(selector).addEventListener('input', renderFormPreview));
-    $('#clearFormBtn').onclick = () => clearForm();
+    $('#clearFormBtn').onclick = () => clearForm(calc.toISODate(new Date()), true);
     $('#seedSampleBtn').onclick = () => seedSampleData(true);
     $('#deleteSampleBtn').onclick = deleteSampleData;
     $('#settingsDeleteSampleBtn').onclick = deleteSampleData;
