@@ -49,20 +49,21 @@ module.exports = async (req, res) => {
       })
     });
 
-    // 4. Atualizar o dia de hoje (02/09/2026) no entries (7 vendas e R$ 1.547,29 mantendo gasto 250.43)
-    await fetch(`${SUPABASE_URL}/rest/v1/entries?date=eq.2026-09-02`, {
+    // 4. Corrigir a data dos eventos que caíram após as 21h (UTC-3) para 2026-09-02
+    await fetch(`${SUPABASE_URL}/rest/v1/cooud_events?id=eq.01M1JHZRPVXA2S075MJEGSGM2D`, {
       method: 'PATCH',
       headers,
-      body: JSON.stringify({
-        sales: 7,
-        revenue: 1547.29,
-        adSpend: 250.43,
-        updatedAt: new Date().toISOString()
-      })
+      body: JSON.stringify({ date: '2026-09-02', status: 'approved_rate:5.942245' })
+    });
+    await fetch(`${SUPABASE_URL}/rest/v1/cooud_events?id=eq.01M1JHZNTNX6XHKJ3X7MNSAGK5`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ date: '2026-09-02' })
     });
 
-    // 5. Calibrar taxa dos 7 eventos de hoje na cooud_events para taxa real de 5.944713
+    // 5. Calibrar taxa dos 8 eventos de hoje na cooud_events para taxa real de 5.942245
     const todayEvents = [
+      '01M1JHZRPVXA2S075MJEGSGM2D',
       '01M1J4C30YYSSK8H6NMKEW4Q41',
       '01M1J3Y9CS7GG45SK6WM2BK7AC',
       '01M1J2ZQ8D8NV01RY2MAVK9PA5',
@@ -75,11 +76,23 @@ module.exports = async (req, res) => {
       await fetch(`${SUPABASE_URL}/rest/v1/cooud_events?id=eq.${evtId}`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ status: 'approved_rate:5.944713' })
+        body: JSON.stringify({ status: 'approved_rate:5.942245' })
       });
     }
 
-    // 6. Buscar todas as entries atualizadas para confirmar
+    // 6. Atualizar o dia de hoje (02/09/2026) no entries (8 vendas e R$ 1.642,08 mantendo gasto 250.43)
+    await fetch(`${SUPABASE_URL}/rest/v1/entries?date=eq.2026-09-02`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        sales: 8,
+        revenue: 1642.08,
+        adSpend: 250.43,
+        updatedAt: new Date().toISOString()
+      })
+    });
+
+    // 7. Buscar todas as entries atualizadas para confirmar
     const entriesRes = await fetch(`${SUPABASE_URL}/rest/v1/entries?select=*&order=date.asc`, { headers });
     const entries = await entriesRes.json();
 
@@ -88,7 +101,7 @@ module.exports = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Lançamentos e eventos de hoje atualizados com sucesso.',
+      message: 'Lançamentos e eventos de hoje atualizados com sucesso para 8 vendas.',
       totalSales,
       totalRevenue: Math.round(totalRevenue * 100) / 100,
       todayEntry: entries.find(e => e.date === '2026-09-02'),

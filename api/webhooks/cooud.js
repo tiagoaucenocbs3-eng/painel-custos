@@ -102,14 +102,16 @@ module.exports = async (req, res) => {
                     body.payment_date || (body.order && body.order.created_at) || null;
     
     let date = '';
-    if (rawDate && typeof rawDate === 'string' && rawDate.length >= 10) {
-      date = rawDate.substring(0, 10);
-    } else {
-      // Data de hoje em Brasília (UTC-3)
-      const nowUtc = new Date();
-      const tzOffset = -3 * 60; // minutos
-      const localTime = new Date(nowUtc.getTime() + tzOffset * 60 * 1000);
-      date = localTime.toISOString().substring(0, 10);
+    if (rawDate) {
+      try {
+        const d = new Date(rawDate);
+        date = d.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+      } catch (e) {
+        date = typeof rawDate === 'string' ? rawDate.substring(0, 10) : '';
+      }
+    }
+    if (!date || date === 'Invalid Date') {
+      date = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
     }
 
     // 7. Buscar se o evento já existe para verificar duplicações ou transições de status
